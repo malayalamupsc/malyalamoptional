@@ -36,8 +36,17 @@ async function showArticle() {
     '</p><h1>' + esc(a.title) + '</h1><div class="content">' + DOMPurify.sanitize(a.html) + '</div>' +
     (url ? '<p><a class="btn" href="' + url + '" download>Download .docx</a></p>' : '') + '</article>';
 }
-id ? showArticle() : showList();
-sb.auth.getSession().then(({data:{session}}) => {
+function cfgProblem() {
+  try { if (!sb) return "Setup error."; }
+  catch (e) { return "config.js did not load or has a mistake. Upload config.js into the same GitHub folder as this page, and make sure the URL and key are inside quotes."; }
+  if (SUPABASE_URL.includes("YOUR-PROJECT") || SUPABASE_ANON_KEY.includes("YOUR-ANON"))
+    return "config.js still has the placeholder text. Put your real Supabase Project URL and publishable key in it, then upload it again.";
+  return "";
+}
+function showProblem(m) { app.innerHTML = '<p class="flash"></p>'; app.firstChild.textContent = m; }
+const bad = cfgProblem();
+if (bad) showProblem(bad); else (id ? showArticle() : showList());
+if (!bad) sb.auth.getSession().then(({data:{session}}) => {
   if (!session) return;
   const nav = document.getElementById("nav");
   nav.innerHTML = '<a href="admin.html"><b>Upload article</b></a><a href="#" id="out">Log out</a>';
