@@ -2,10 +2,11 @@
 <meta name="robots" content="noindex">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Malayalam:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650&family=Noto+Serif+Malayalam:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script></head><body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script></head><body class="admin">
 <header class="top"><a class="brand" href="./">malayalamoptional</a><nav id="nav"></nav></header>
 <main id="app"></main>
 <script src="config.js"></script>
@@ -18,8 +19,10 @@ async function init() {
 }
 function showLogin() {
   nav.innerHTML = "";
-  app.innerHTML = '<h1>Admin login</h1><form class="card" id="f"><label>Email<input type="email" id="em" required></label>' +
-    '<label>Password<input type="password" id="pw" required></label><button>Log in</button><p id="note" class="flash" hidden></p></form>';
+  app.innerHTML = '<h1>Admin login</h1><p class="sub">Sign in to manage your articles.</p><form class="card" id="f">' +
+    '<div class="field"><label for="em">Email</label><input type="email" id="em" autocomplete="username" required></div>' +
+    '<div class="field"><label for="pw">Password</label><input type="password" id="pw" autocomplete="current-password" required></div>' +
+    '<button class="cta">Log in</button><p id="note" class="flash" hidden></p></form>';
   document.getElementById("f").onsubmit = async e => {
     e.preventDefault();
     const {error} = await sb.auth.signInWithPassword({email: em.value, password: pw.value});
@@ -29,12 +32,30 @@ function showLogin() {
 async function showAdmin() {
   nav.innerHTML = '<a href="#" id="out">Log out</a>';
   document.getElementById("out").onclick = async e => { e.preventDefault(); await sb.auth.signOut(); init(); };
-  app.innerHTML = '<h1>Upload an article</h1><form class="card" id="f">' +
-    '<label>Title (optional, defaults to file name)<input id="t"></label>' +
-    '<label>Category<select id="c">' + CATEGORIES.map(c => '<option>' + esc(c) + '</option>').join("") + '</select></label>' +
-    '<label>Word file<input type="file" id="file" accept=".docx" required></label><button id="go">Publish</button>' +
+  app.innerHTML = '<h1>Upload an article</h1><p class="sub">Add a Word document and publish it in one step.</p><form class="card" id="f">' +
+    '<div class="field"><label for="t">Title <span class="opt">(optional, defaults to file name)</span></label><input type="text" id="t" autocomplete="off"></div>' +
+    '<div class="field"><label for="c">Category</label><select id="c">' + CATEGORIES.map(c => '<option>' + esc(c) + '</option>').join("") + '</select></div>' +
+    '<div class="field"><span class="lbl">Word file</span><div class="drop" id="drop">' +
+      '<input type="file" id="file" accept=".docx" required aria-label="Choose a Word file">' +
+      '<span class="drop-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span>' +
+      '<span class="drop-title" id="dropTitle">Drop your .docx here</span>' +
+      '<span class="drop-hint" id="dropHint">or browse from your device</span>' +
+      '<span class="btn-secondary" aria-hidden="true">Choose file</span></div></div>' +
+    '<button class="cta" id="go">Publish</button>' +
     '<p id="note" class="flash" hidden></p></form><h2>Published</h2><ul class="list" id="list"></ul>';
-  document.getElementById("f").onsubmit = upload;
+  const form = document.getElementById("f"), drop = document.getElementById("drop"), fileIn = document.getElementById("file");
+  const dropTitle = document.getElementById("dropTitle"), dropHint = document.getElementById("dropHint");
+  const syncDrop = () => {
+    const f = fileIn.files[0];
+    drop.classList.toggle("has-file", !!f);
+    dropTitle.textContent = f ? f.name : "Drop your .docx here";
+    dropHint.textContent = f ? (f.size / 1024 < 1024 ? Math.round(f.size / 1024) + " KB" : (f.size / 1048576).toFixed(1) + " MB") + " · click to replace" : "or browse from your device";
+  };
+  fileIn.addEventListener("change", syncDrop);
+  form.addEventListener("reset", () => setTimeout(syncDrop));
+  ["dragenter", "dragover"].forEach(ev => fileIn.addEventListener(ev, () => drop.classList.add("over")));
+  ["dragleave", "drop"].forEach(ev => fileIn.addEventListener(ev, () => drop.classList.remove("over")));
+  form.onsubmit = upload;
   loadList();
 }
 async function upload(e) {

@@ -1,0 +1,348 @@
+/* ==========================================================================
+   Admin re-skin: premium minimal, Apple-HIG inspired.
+   Scoped to body.admin so the public site (style.css) is untouched.
+   Palette: Forest #085444 · Cream #FDFCFA · Charcoal #1C2826 · Sage #E1ECE6
+   ========================================================================== */
+
+body.admin {
+  --forest: #085444;
+  --cream: #FDFCFA;
+  --charcoal: #1C2826;
+  --sage: #E1ECE6;
+
+  --canvas: var(--cream);
+  --card: #FFFFFF;
+  --text: var(--charcoal);
+  --label: rgba(28, 40, 38, 0.6);
+  --hairline: rgba(28, 40, 38, 0.08);
+  --field: var(--sage);
+  --field-focus: var(--cream);
+  --link: var(--forest);
+  --ring: rgba(8, 84, 68, 0.16);
+  --btn2-bg: var(--sage);
+  --btn2-fg: var(--forest);
+  --danger: #8C2F25;
+
+  --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --font: "SF Pro Display", Inter, "Noto Sans Malayalam", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  background: var(--canvas);
+  color: var(--text);
+  font: 400 16px/1.6 var(--font);
+  letter-spacing: -0.005em;
+}
+
+@media (prefers-color-scheme: dark) {
+  body.admin {
+    --canvas: var(--charcoal);
+    --card: rgba(253, 252, 250, 0.04);
+    --text: var(--cream);
+    --label: rgba(253, 252, 250, 0.6);
+    --hairline: rgba(253, 252, 250, 0.1);
+    --field: rgba(225, 236, 230, 0.08);
+    --field-focus: rgba(225, 236, 230, 0.12);
+    --link: var(--sage);
+    --ring: rgba(225, 236, 230, 0.18);
+    --btn2-bg: rgba(225, 236, 230, 0.12);
+    --btn2-fg: var(--sage);
+    --danger: #E7A89F;
+  }
+}
+
+/* ---- Page chrome ------------------------------------------------------- */
+body.admin .top {
+  background: color-mix(in srgb, var(--canvas) 80%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--hairline);
+}
+body.admin .brand {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+body.admin nav a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--label);
+  transition: color 0.3s var(--ease);
+}
+body.admin nav a:hover { color: var(--link); }
+
+body.admin main {
+  max-width: 34rem;
+  padding: 72px 20px 112px;
+}
+body.admin h1,
+body.admin h2 {
+  font-family: var(--font);
+  color: var(--text);
+}
+body.admin h1 {
+  font-size: clamp(28px, 5vw, 34px);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 10px;
+}
+body.admin .sub {
+  margin: 0 0 32px;
+  font-size: 15px;
+  color: var(--label);
+}
+body.admin h2 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--label);
+  margin: 56px 0 12px;
+}
+
+/* ---- Card -------------------------------------------------------------- */
+body.admin .card {
+  max-width: none;
+  display: grid;
+  gap: 28px;
+  padding: 44px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+@media (max-width: 480px) {
+  body.admin .card { padding: 32px 24px; gap: 24px; }
+  body.admin main { padding-top: 40px; }
+}
+
+/* ---- Labels ------------------------------------------------------------ */
+body.admin .field { display: grid; gap: 10px; }
+body.admin .field > label,
+body.admin .field > .lbl,
+body.admin label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+body.admin .opt {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+/* ---- Inputs & select --------------------------------------------------- */
+body.admin input[type=text],
+body.admin input[type=email],
+body.admin input[type=password],
+body.admin select {
+  width: 100%;
+  padding: 14px 16px;
+  font: 400 16px/1.4 var(--font);
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--text);
+  background: var(--field);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), background-color 0.3s var(--ease);
+}
+body.admin input:hover,
+body.admin select:hover { border-color: var(--hairline); }
+body.admin input:focus,
+body.admin select:focus {
+  border-color: var(--forest);
+  background: var(--field-focus);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+@media (prefers-color-scheme: dark) {
+  body.admin input:focus,
+  body.admin select:focus { border-color: var(--sage); }
+}
+body.admin select {
+  padding-right: 44px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%231C2826' stroke-opacity='.55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+@media (prefers-color-scheme: dark) {
+  body.admin select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23E1ECE6' stroke-opacity='.7' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+  body.admin select option { background: var(--charcoal); color: var(--cream); }
+}
+
+/* ---- File drop zone ---------------------------------------------------- */
+body.admin .drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 24px;
+  text-align: center;
+  background: transparent;
+  border: 1.5px dashed rgba(28, 40, 38, 0.2);
+  border-radius: 16px;
+  transition: border-color 0.3s var(--ease), background-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+@media (prefers-color-scheme: dark) {
+  body.admin .drop { border-color: rgba(253, 252, 250, 0.2); }
+}
+body.admin .drop:hover,
+body.admin .drop.over {
+  border-color: var(--forest);
+  background: color-mix(in srgb, var(--sage) 45%, transparent);
+}
+body.admin .drop:focus-within {
+  border-color: var(--forest);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+@media (prefers-color-scheme: dark) {
+  body.admin .drop:hover,
+  body.admin .drop.over,
+  body.admin .drop:focus-within { border-color: var(--sage); }
+}
+/* Real input stretched invisibly over the zone: click, keyboard and
+   native drag-and-drop all work, and `required` validation still fires. */
+body.admin .drop input[type=file] {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+}
+body.admin .drop-icon {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  background: var(--sage);
+  color: var(--forest);
+}
+@media (prefers-color-scheme: dark) {
+  body.admin .drop-icon { background: rgba(225, 236, 230, 0.12); color: var(--sage); }
+}
+body.admin .drop-title {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  word-break: break-word;
+}
+body.admin .drop-hint {
+  font-size: 13px;
+  color: var(--label);
+}
+body.admin .drop.has-file { border-style: solid; border-color: rgba(8, 84, 68, 0.35); }
+
+/* ---- Buttons ----------------------------------------------------------- */
+body.admin .btn-secondary {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--btn2-bg);
+  color: var(--btn2-fg);
+  border-radius: 9999px;
+  pointer-events: none; /* the invisible input above handles the click */
+  transition: all 0.3s var(--ease);
+}
+body.admin .drop:hover .btn-secondary { transform: scale(1.03); }
+
+/* Primary CTA */
+body.admin button.cta {
+  justify-self: stretch;
+  padding: 16px 40px;
+  font: 600 16px/1 var(--font);
+  letter-spacing: -0.005em;
+  color: #FFFFFF;
+  background: var(--forest);
+  border: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(8, 84, 68, 0.25), 0 8px 20px -6px rgba(8, 84, 68, 0.35);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+@media (min-width: 520px) { body.admin button.cta { justify-self: start; } }
+body.admin button.cta:hover { transform: scale(1.02); box-shadow: 0 2px 4px rgba(8, 84, 68, 0.25), 0 12px 28px -8px rgba(8, 84, 68, 0.45); }
+body.admin button.cta:active { transform: scale(0.98); }
+body.admin button.cta:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--ring), 0 0 0 1.5px var(--forest); }
+body.admin button.cta:disabled { opacity: 0.55; cursor: wait; transform: none; }
+@media (prefers-color-scheme: dark) {
+  body.admin button.cta { background: var(--forest); outline: 1px solid rgba(225, 236, 230, 0.18); }
+}
+
+/* Status message */
+body.admin .flash {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--forest);
+  background: var(--sage);
+  border-radius: 12px;
+}
+body.admin .flash[hidden] { display: none; }
+@media (prefers-color-scheme: dark) { body.admin .flash { color: var(--sage); background: rgba(225, 236, 230, 0.1); } }
+
+/* ---- Published list ---------------------------------------------------- */
+body.admin .list {
+  border-top: 0;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+body.admin .list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+body.admin .list li:last-child { border-bottom: 0; }
+body.admin .list li a {
+  flex: 1 1 14rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.3s var(--ease);
+}
+body.admin .list li a:hover { color: var(--link); }
+body.admin .list li span { font-size: 13px; color: var(--label); }
+body.admin .list .empty { color: var(--label); justify-content: center; padding: 32px; }
+body.admin button.danger {
+  padding: 7px 14px;
+  font: 500 13px/1 var(--font);
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+body.admin button.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+body.admin button.danger:active { transform: scale(0.96); }
+
+@media (prefers-reduced-motion: reduce) {
+  body.admin * { transition: none !important; }
+  body.admin button.cta:hover, body.admin button.cta:active,
+  body.admin .drop:hover .btn-secondary { transform: none; }
+}
