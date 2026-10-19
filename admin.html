@@ -1,0 +1,72 @@
+<!doctype html><html lang="en"><head><title>Admin | malayalamoptional</title>
+<meta name="robots" content="noindex">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Malayalam:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script></head><body>
+<header class="top"><a class="brand" href="./">malayalamoptional</a><nav id="nav"></nav></header>
+<main id="app"></main>
+<script src="config.js"></script>
+<script>
+const app = document.getElementById("app"), nav = document.getElementById("nav");
+const note = m => { let n = document.getElementById("note"); if (n) n.textContent = m; };
+async function init() {
+  const {data:{session}} = await sb.auth.getSession();
+  session ? showAdmin() : showLogin();
+}
+function showLogin() {
+  nav.innerHTML = "";
+  app.innerHTML = '<h1>Admin login</h1><form class="card" id="f"><label>Email<input type="email" id="em" required></label>' +
+    '<label>Password<input type="password" id="pw" required></label><button>Log in</button><p id="note" class="flash" hidden></p></form>';
+  document.getElementById("f").onsubmit = async e => {
+    e.preventDefault();
+    const {error} = await sb.auth.signInWithPassword({email: em.value, password: pw.value});
+    if (error) { const n = document.getElementById("note"); n.hidden = false; n.textContent = "Wrong email or password."; } else init();
+  };
+}
+async function showAdmin() {
+  nav.innerHTML = '<a href="#" id="out">Log out</a>';
+  document.getElementById("out").onclick = async e => { e.preventDefault(); await sb.auth.signOut(); init(); };
+  app.innerHTML = '<h1>Upload an article</h1><form class="card" id="f">' +
+    '<label>Title (optional, defaults to file name)<input id="t"></label>' +
+    '<label>Category<select id="c">' + CATEGORIES.map(c => '<option>' + esc(c) + '</option>').join("") + '</select></label>' +
+    '<label>Word file<input type="file" id="file" accept=".docx" required></label><button id="go">Publish</button>' +
+    '<p id="note" class="flash" hidden></p></form><h2>Published</h2><ul class="list" id="list"></ul>';
+  document.getElementById("f").onsubmit = upload;
+  loadList();
+}
+async function upload(e) {
+  e.preventDefault();
+  const n = document.getElementById("note"), go = document.getElementById("go"), f = document.getElementById("file").files[0];
+  n.hidden = false;
+  if (!f || !f.name.toLowerCase().endsWith(".docx")) { n.textContent = "Choose a .docx file."; return; }
+  go.disabled = true; n.textContent = "Converting and uploading…";
+  try {
+    const {value:html} = await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()});
+    const path = crypto.randomUUID() + ".docx";
+    let r = await sb.storage.from("docx").upload(path, f, {contentType: f.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+    if (r.error) throw r.error;
+    const title = document.getElementById("t").value.trim() || f.name.replace(/\.docx$/i, "");
+    r = await sb.from("articles").insert({title, category: document.getElementById("c").value, html, file_path: path});
+    if (r.error) { await sb.storage.from("docx").remove([path]); throw r.error; }
+    n.textContent = "Published: " + title; document.getElementById("f").reset(); loadList();
+  } catch (err) { n.textContent = "Upload failed: " + (err.message || err); }
+  go.disabled = false;
+}
+async function loadList() {
+  const {data} = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", {ascending:false});
+  const ul = document.getElementById("list");
+  ul.innerHTML = (data && data.length) ? data.map(r => '<li><a href="index.html?id=' + r.id + '">' + esc(r.title) + '</a><span>' +
+    esc(r.category) + ', ' + fmt(r.created_at) + '</span><button class="danger" data-id="' + r.id + '" data-p="' + esc(r.file_path || "") + '">Delete</button></li>').join("")
+    : '<li class="empty">Nothing uploaded yet.</li>';
+  ul.querySelectorAll("button").forEach(b => b.onclick = async () => {
+    if (!confirm("Delete this article?")) return;
+    await sb.from("articles").delete().eq("id", b.dataset.id);
+    if (b.dataset.p) await sb.storage.from("docx").remove([b.dataset.p]);
+    loadList();
+  });
+}
+init();
+</script></body></html>
