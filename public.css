@@ -274,6 +274,24 @@ body.pub .content th, body.pub .content td { border: 1px solid var(--hairline); 
 body.pub .content th { background: var(--sage); color: var(--charcoal); font-family: var(--font); }
 body.pub .content img { border-radius: 12px; }
 
+/* Reading view: the article column is exactly 80% of the page width,
+   leaving a clean 10% margin on the left and right. */
+body.pub.reading main {
+  width: 80%;
+  max-width: none;
+  margin-inline: auto;
+  padding-inline: 0;
+}
+/* Keep lines comfortable to read inside the wide box (centered). Delete this
+   rule if you want the text to stretch the full width of the box. */
+body.pub.reading .content > * {
+  max-width: 60rem;
+  margin-inline: auto;
+}
+@media (max-width: 560px) {
+  body.pub.reading .content { padding: 24px 16px; }
+}
+
 /* Download CTA */
 body.pub a.btn {
   display: inline-block;

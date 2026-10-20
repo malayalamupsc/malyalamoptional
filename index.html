@@ -45,6 +45,7 @@ async function showArticle() {
   const {data:a, error} = await sb.from("articles").select("*").eq("id", id).single();
   if (error || !a) { app.innerHTML = '<p class="empty">Article not found. <a href="./">Back</a></p>'; return; }
   document.title = a.title + " | malayalamoptional";
+  document.body.classList.add("reading");
   const url = a.file_path ? sb.storage.from("docx").getPublicUrl(a.file_path).data.publicUrl : null;
   app.innerHTML = '<a class="back" href="./">← All articles</a><article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
     '</span></p><h1>' + esc(a.title) + '</h1><div class="content">' + DOMPurify.sanitize(a.html) + '</div>' +
