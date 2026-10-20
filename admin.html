@@ -37,6 +37,7 @@ async function showAdmin() {
   app.innerHTML = '<h1>Upload an article</h1><p class="sub">Add a Word document and publish it in one step.</p><form class="card" id="f">' +
     '<div class="field"><label for="t">Title <span class="opt">(optional, defaults to file name)</span></label><input type="text" id="t" autocomplete="off"></div>' +
     '<div class="field"><label for="c">Category</label><select id="c">' + CATEGORIES.map(c => '<option>' + esc(c) + '</option>').join("") + '</select></div>' +
+    '<div class="field" id="fofield" hidden><label for="fo">Collection <span class="opt">(optional)</span></label><select id="fo"></select></div>' +
     '<div class="field"><span class="lbl">File (Word or PDF)</span><div class="drop" id="drop">' +
       '<input type="file" id="file" accept=".docx,.pdf,application/pdf" required aria-label="Choose a Word or PDF file">' +
       '<span class="drop-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span>' +
@@ -44,7 +45,14 @@ async function showAdmin() {
       '<span class="drop-hint" id="dropHint">or browse from your device</span>' +
       '<span class="btn-secondary" aria-hidden="true">Choose file</span></div></div>' +
     '<button class="cta" id="go">Publish</button>' +
-    '<p id="note" class="flash" hidden></p></form><h2>Published</h2><ul class="list" id="list"></ul>';
+    '<p id="note" class="flash" hidden></p></form>' +
+    '<h2>Collections</h2><form class="card" id="cf"><p class="hint">Group related articles together. Each collection shows on the site as a card.</p>' +
+    '<div class="field"><label for="cn">Collection name</label><input type="text" id="cn" autocomplete="off" placeholder="e.g. Kannassa Ramayanam"></div>' +
+    '<div class="field"><span class="lbl">Card</span><div class="picker" id="picker">' +
+    [1,2,3,4,5,6,7,8,9].map(n => '<label class="pick"><input type="radio" name="ic" value="' + n + '"' + (n === 1 ? ' checked' : '') + '><img src="card-' + n + '.png" alt="Card ' + n + '" width="64" height="64"></label>').join("") +
+    '</div></div><div class="btns"><button class="cta" id="cb">Create collection</button><button type="button" class="sec" id="cc" hidden>Cancel</button></div>' +
+    '<p id="cnote" class="flash" hidden></p></form><ul class="list" id="flist"></ul>' +
+    '<h2>Published</h2><ul class="list" id="list"></ul>';
   const form = document.getElementById("f"), drop = document.getElementById("drop"), fileIn = document.getElementById("file");
   const dropTitle = document.getElementById("dropTitle"), dropHint = document.getElementById("dropHint");
   const syncDrop = () => {
@@ -58,7 +66,66 @@ async function showAdmin() {
   ["dragenter", "dragover"].forEach(ev => fileIn.addEventListener(ev, () => drop.classList.add("over")));
   ["dragleave", "drop"].forEach(ev => fileIn.addEventListener(ev, () => drop.classList.remove("over")));
   form.onsubmit = upload;
+  document.getElementById("cf").onsubmit = saveFolder;
+  document.getElementById("cc").onclick = resetFolderForm;
+  await loadFolders();
   loadList();
+}
+let FOLDERS = [], foldersOk = true, editingId = null;
+const folderOptions = sel => '<option value="">No collection</option>' + FOLDERS.map(f =>
+  '<option value="' + esc(f.id) + '"' + (f.id === sel ? " selected" : "") + '>' + esc(f.name) + '</option>').join("");
+const cardSrc = f => "card-" + (/^[1-9]$/.test(f.icon) ? f.icon : "1") + ".png";
+async function loadFolders() {
+  const r = await sb.from("folders").select("*").order("created_at");
+  foldersOk = !r.error; FOLDERS = r.error ? [] : r.data;
+  renderFolders();
+}
+function renderFolders() {
+  const fl = document.getElementById("flist"), cf = document.getElementById("cf"), fo = document.getElementById("fo");
+  if (!foldersOk) {
+    cf.hidden = true; document.getElementById("fofield").hidden = true;
+    fl.innerHTML = '<li class="empty">Collections need a one-time database update. Run supabase-folders.sql in the Supabase SQL Editor, then reload this page.</li>';
+    return;
+  }
+  cf.hidden = false;
+  const keep = fo.value;
+  fo.innerHTML = folderOptions(keep);
+  document.getElementById("fofield").hidden = !FOLDERS.length;
+  fl.innerHTML = FOLDERS.length ? FOLDERS.map(f => '<li><img class="fi" src="' + cardSrc(f) + '" alt="" width="44" height="44"><span class="fn">' + esc(f.name) +
+    '</span><button type="button" class="ghost-btn" data-e="' + esc(f.id) + '">Edit</button><button type="button" class="danger" data-d="' + esc(f.id) + '">Delete</button></li>').join("")
+    : '<li class="empty">No collections yet. Create your first one above.</li>';
+  fl.querySelectorAll("[data-e]").forEach(b => b.onclick = () => {
+    const f = FOLDERS.find(x => x.id === b.dataset.e); if (!f) return;
+    editingId = f.id;
+    document.getElementById("cn").value = f.name;
+    const r = document.querySelector('input[name=ic][value="' + (/^[1-9]$/.test(f.icon) ? f.icon : "1") + '"]'); if (r) r.checked = true;
+    document.getElementById("cb").textContent = "Save changes"; document.getElementById("cc").hidden = false;
+    document.getElementById("cf").scrollIntoView({behavior: "smooth", block: "center"}); document.getElementById("cn").focus();
+  });
+  fl.querySelectorAll("[data-d]").forEach(b => b.onclick = async () => {
+    if (!confirm("Delete this collection? Its articles are kept and will show as normal articles.")) return;
+    const r = await sb.from("folders").delete().eq("id", b.dataset.d);
+    if (r.error) { alert("Could not delete: " + r.error.message); return; }
+    if (editingId === b.dataset.d) resetFolderForm();
+    await loadFolders(); loadList();
+  });
+}
+function resetFolderForm() {
+  editingId = null;
+  document.getElementById("cn").value = "";
+  document.querySelector('input[name=ic][value="1"]').checked = true;
+  document.getElementById("cb").textContent = "Create collection"; document.getElementById("cc").hidden = true;
+}
+async function saveFolder(e) {
+  e.preventDefault();
+  const n = document.getElementById("cnote"), name = document.getElementById("cn").value.trim();
+  const icon = (document.querySelector("input[name=ic]:checked") || {}).value || "1";
+  n.hidden = false;
+  if (!name) { n.textContent = "Enter a collection name."; return; }
+  const r = editingId ? await sb.from("folders").update({name, icon}).eq("id", editingId) : await sb.from("folders").insert({name, icon});
+  if (r.error) { n.textContent = "Could not save: " + r.error.message; return; }
+  n.textContent = editingId ? "Saved." : "Collection created.";
+  resetFolderForm(); await loadFolders(); loadList();
 }
 async function upload(e) {
   e.preventDefault();
@@ -74,18 +141,28 @@ async function upload(e) {
     let r = await sb.storage.from("docx").upload(path, f, {contentType: type});
     if (r.error) throw r.error;
     const title = document.getElementById("t").value.trim() || f.name.replace(/\.(docx|pdf)$/i, "");
-    r = await sb.from("articles").insert({title, category: document.getElementById("c").value, html, file_path: path});
+    const row = {title, category: document.getElementById("c").value, html, file_path: path};
+    const fv = document.getElementById("fo").value; if (fv) row.folder_id = fv;
+    r = await sb.from("articles").insert(row);
     if (r.error) { await sb.storage.from("docx").remove([path]); throw r.error; }
-    n.textContent = "Published: " + title; document.getElementById("f").reset(); loadList();
+    const keepFolder = document.getElementById("fo").value;
+    n.textContent = "Published: " + title; document.getElementById("f").reset(); document.getElementById("fo").value = keepFolder; loadList();
   } catch (err) { n.textContent = "Upload failed: " + (err.message || err); }
   go.disabled = false;
 }
 async function loadList() {
-  const {data} = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", {ascending:false});
+  let {data, error} = await sb.from("articles").select("id,title,category,created_at,file_path,folder_id").order("created_at", {ascending:false});
+  if (error) ({data} = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", {ascending:false}));
   const ul = document.getElementById("list");
   ul.innerHTML = (data && data.length) ? data.map(r => '<li><a href="index.html?id=' + r.id + '">' + esc(r.title) + '</a><span>' +
-    esc(r.category) + ', ' + fmt(r.created_at) + '</span><button class="danger" data-id="' + r.id + '" data-p="' + esc(r.file_path || "") + '">Delete</button></li>').join("")
+    esc(r.category) + ', ' + fmt(r.created_at) + '</span>' +
+    (FOLDERS.length ? '<select class="mv" data-m="' + esc(r.id) + '" aria-label="Move to collection">' + folderOptions(r.folder_id) + '</select>' : '') +
+    '<button class="danger" data-id="' + r.id + '" data-p="' + esc(r.file_path || "") + '">Delete</button></li>').join("")
     : '<li class="empty">Nothing uploaded yet.</li>';
+  ul.querySelectorAll("select[data-m]").forEach(s => s.onchange = async () => {
+    const r = await sb.from("articles").update({folder_id: s.value || null}).eq("id", s.dataset.m);
+    if (r.error) { alert("Could not move: " + r.error.message); loadList(); }
+  });
   ul.querySelectorAll("button").forEach(b => b.onclick = async () => {
     if (!confirm("Delete this article?")) return;
     await sb.from("articles").delete().eq("id", b.dataset.id);
