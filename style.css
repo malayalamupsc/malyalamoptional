@@ -7,7 +7,7 @@ a{color:var(--accent)}:focus-visible{outline:3px solid var(--accent);outline-off
 .skip{position:absolute;left:-999px}.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.5rem 1rem;z-index:30}
 #bar{position:fixed;top:0;left:0;height:3px;width:100%;background:var(--accent);transform:scaleX(0);transform-origin:0;z-index:20}
 .top{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.8rem max(1.25rem,calc((100vw - 72rem)/2));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.brand{font-weight:700;font-size:1.2rem;color:var(--ink);text-decoration:none}
+.brand{display:inline-flex;align-items:center;gap:.7rem;font-weight:700;font-size:1.2rem;color:var(--ink);text-decoration:none}.brand img{height:38px;width:auto;border-radius:12px;display:block}
 nav{display:flex;gap:1.1rem;font-size:.95rem}nav a{color:var(--mute);text-decoration:none}nav a:hover{color:var(--accent)}
 .wrap,main{max-width:72rem;margin:0 auto;padding:0 1.25rem}main{min-height:70vh;padding-bottom:4rem}
 .hero{padding:clamp(2.5rem,8vw,6rem) 0 2rem}
