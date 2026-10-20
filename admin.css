@@ -350,13 +350,6 @@ body.admin button.danger:active { transform: scale(0.96); }
 /* ---- Collections (admin) ----------------------------------------------- */
 body.admin [hidden] { display: none !important; }
 body.admin .hint { margin: 0; font-size: 14px; color: var(--label); }
-body.admin .picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 12px; }
-body.admin .pick { position: relative; display: block; cursor: pointer; border-radius: 16px; line-height: 0; }
-body.admin .pick input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-body.admin .pick img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 16px; opacity: 0.6; transition: all 0.3s var(--ease); box-shadow: 0 0 0 1px var(--hairline); }
-body.admin .pick:hover img { opacity: 1; transform: scale(1.04); }
-body.admin .pick input:checked + img { opacity: 1; box-shadow: 0 0 0 3px var(--forest), 0 0 0 7px var(--ring); }
-body.admin .pick input:focus-visible + img { box-shadow: 0 0 0 3px var(--forest), 0 0 0 7px var(--ring); }
 body.admin .btns { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 body.admin button.sec {
   padding: 16px 28px; font: 600 16px/1 var(--font);
@@ -373,9 +366,22 @@ body.admin .ghost-btn {
 }
 body.admin .ghost-btn:hover { background: var(--btn2-bg); }
 body.admin #flist { margin-top: 16px; }
-body.admin #flist .fi { width: 44px; height: 44px; border-radius: 12px; flex: none; }
+body.admin #flist .fi { width: 56px; height: 44px; border-radius: 10px; flex: none; object-fit: cover; background: var(--field); }
 body.admin #flist .fn { flex: 1 1 10rem; font-weight: 500; font-size: 16px; }
 body.admin select.mv {
   width: auto; max-width: 11rem; padding: 8px 32px 8px 12px;
   font-size: 13px; border-radius: 10px; background-position: right 12px center;
 }
+
+body.admin textarea {
+  width: 100%; padding: 14px 16px; resize: vertical; min-height: 88px;
+  font: 400 16px/1.5 var(--font); letter-spacing: -0.005em; text-transform: none;
+  color: var(--text); background: var(--field);
+  border: 1px solid transparent; border-radius: 12px; outline: none;
+  transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), background-color 0.3s var(--ease);
+}
+body.admin textarea:hover { border-color: var(--hairline); }
+body.admin textarea:focus { border-color: var(--forest); background: var(--field-focus); box-shadow: 0 0 0 4px var(--ring); }
+@media (prefers-color-scheme: dark) { body.admin textarea:focus { border-color: var(--sage); } }
+body.admin .prev { display: flex; justify-content: center; padding: 24px 16px; background: color-mix(in srgb, var(--sage) 35%, transparent); border-radius: 16px; }
+body.admin #crm { justify-self: start; padding-left: 0; }
