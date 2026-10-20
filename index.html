@@ -6,19 +6,20 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="public.css">
+<link rel="stylesheet" href="card.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script></head><body class="pub">
 <header class="top"><a class="brand" href="./"><img src="logo.png" alt="" width="70" height="38"><span>malayalamoptional</span></a><nav id="nav"></nav></header>
 <main id="app"><p class="empty">Loading…</p></main>
 <footer>© malayalamoptional &nbsp; <a href="admin.html">Admin login</a></footer>
 <script src="config.js"></script>
+<script src="card.js"></script>
 <script>
 const app = document.getElementById("app");
 const params = new URLSearchParams(location.search);
 const id = params.get("id"), fid = params.get("folder");
 const rowHtml = r => '<li><a href="?id=' + esc(r.id) + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span>' +
   (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + '<span class="date">' + fmt(r.created_at) + '</span></li>';
-const iconSrc = f => "card-" + (/^[1-9]$/.test(f.icon) ? f.icon : "1") + ".png";
 const countLabel = n => n + (n === 1 ? " article" : " articles");
 // Articles + collections. Falls back gracefully if the collections SQL has not been run yet.
 async function loadAll() {
@@ -51,9 +52,9 @@ async function showList() {
     const inFolder = r => r.folder_id && folders.some(f => f.id === r.folder_id);
     const loose = data.filter(r => !inFolder(r));
     let h = "";
-    if (folders.length) h += '<h2 class="section">Collections</h2><div class="cards">' + folders.map(f =>
-      '<a class="fcard" href="?folder=' + esc(f.id) + '"><img src="' + iconSrc(f) + '" alt="" width="150" height="150">' +
-      '<span class="fname">' + esc(f.name) + '</span><span class="fcount">' + countLabel(data.filter(r => r.folder_id === f.id).length) + '</span></a>').join("") + '</div>';
+    if (folders.length) h += '<h2 class="section">Collections</h2><div class="cards">' + folders.map(f => cardHtml({
+      href: "?folder=" + f.id, title: f.name, desc: f.description, btn: f.button_text, img: cardImgUrl(f.image_path),
+      badge: countLabel(data.filter(r => r.folder_id === f.id).length)})).join("") + '</div>';
     if (loose.length || !folders.length) h += (folders.length ? '<h2 class="section">Articles</h2>' : '') +
       '<ul class="list">' + (loose.length ? loose.map(rowHtml).join("") : empty) + '</ul>';
     out.innerHTML = h;
@@ -72,8 +73,9 @@ async function showFolder() {
   if (error || !f) { app.innerHTML = '<p class="empty">Collection not found. <a href="./">Back</a></p>'; return; }
   document.title = f.name + " | malayalamoptional";
   const rows = articles.filter(r => r.folder_id === fid);
-  app.innerHTML = '<a class="back" href="./">← All articles</a><div class="fhead"><img src="' + iconSrc(f) + '" alt="" width="96" height="96"><div>' +
-    '<p class="eyebrow">Collection</p><h1>' + esc(f.name) + '</h1><p class="sub">' + countLabel(rows.length) + '</p></div></div>' +
+  const img = cardImgUrl(f.image_path);
+  app.innerHTML = '<a class="back" href="./">← All articles</a><div class="fhead">' + (img ? '<img src="' + esc(img) + '" alt="" width="96" height="96">' : '') + '<div>' +
+    '<p class="eyebrow">Collection</p><h1>' + esc(f.name) + '</h1><p class="sub">' + (f.description ? esc(f.description) + " · " : "") + countLabel(rows.length) + '</p></div></div>' +
     '<ul class="list">' + (rows.length ? rows.map(rowHtml).join("") : '<li class="empty">Nothing here yet.</li>') + '</ul>';
 }
 // Show the PDF through a blob URL so the storage host's security headers can't blank the viewer.
