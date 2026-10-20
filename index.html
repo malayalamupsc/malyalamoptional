@@ -14,9 +14,22 @@
 <script src="config.js"></script>
 <script>
 const app = document.getElementById("app");
-const id = new URLSearchParams(location.search).get("id");
+const params = new URLSearchParams(location.search);
+const id = params.get("id"), fid = params.get("folder");
+const rowHtml = r => '<li><a href="?id=' + esc(r.id) + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span>' +
+  (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + '<span class="date">' + fmt(r.created_at) + '</span></li>';
+const iconSrc = f => "card-" + (/^[1-9]$/.test(f.icon) ? f.icon : "1") + ".png";
+const countLabel = n => n + (n === 1 ? " article" : " articles");
+// Articles + collections. Falls back gracefully if the collections SQL has not been run yet.
+async function loadAll() {
+  const ord = {ascending: false};
+  let r = await sb.from("articles").select("id,title,category,created_at,file_path,folder_id").order("created_at", ord);
+  if (r.error) r = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", ord);
+  const f = await sb.from("folders").select("*").order("created_at");
+  return {articles: r.data || [], error: r.error, folders: f.error ? [] : (f.data || [])};
+}
 async function showList() {
-  const {data, error} = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", {ascending:false});
+  const {articles: data, error, folders} = await loadAll();
   if (error) { app.innerHTML = '<p class="empty">Could not load articles.</p>'; return; }
   let cat = "";
   app.innerHTML = '<p class="eyebrow">Study library</p><h1>Malayalam Optional notes and articles</h1>' +
@@ -25,13 +38,24 @@ async function showList() {
     '<input id="q" type="search" placeholder="Search by title" aria-label="Search by title" autocomplete="off"></div>' +
     '<div class="pills" id="pills" role="group" aria-label="Filter by category">' +
     ["", ...CATEGORIES].map(c => '<button type="button" data-c="' + esc(c) + '" aria-pressed="' + (c === "") + '">' + (c ? esc(c) : "All") + '</button>').join("") + '</div>' +
-    '<ul class="list" id="list"></ul>';
+    '<div id="out"></div>';
+  const empty = '<li class="empty">No articles found.</li>';
   const draw = () => {
-    const q = document.getElementById("q").value.toLowerCase();
-    const rows = data.filter(r => r.title.toLowerCase().includes(q) && (!cat || r.category === cat));
-    document.getElementById("list").innerHTML = rows.length ? rows.map(r =>
-      '<li><a href="?id=' + r.id + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span>' + (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + '<span class="date">' + fmt(r.created_at) + '</span></li>').join("")
-      : '<li class="empty">No articles found.</li>';
+    const q = document.getElementById("q").value.toLowerCase(), out = document.getElementById("out");
+    if (q || cat) {   // searching or filtering: flat list across everything
+      const rows = data.filter(r => r.title.toLowerCase().includes(q) && (!cat || r.category === cat));
+      out.innerHTML = '<ul class="list">' + (rows.length ? rows.map(rowHtml).join("") : empty) + '</ul>';
+      return;
+    }
+    const inFolder = r => r.folder_id && folders.some(f => f.id === r.folder_id);
+    const loose = data.filter(r => !inFolder(r));
+    let h = "";
+    if (folders.length) h += '<h2 class="section">Collections</h2><div class="cards">' + folders.map(f =>
+      '<a class="fcard" href="?folder=' + esc(f.id) + '"><img src="' + iconSrc(f) + '" alt="" width="150" height="150">' +
+      '<span class="fname">' + esc(f.name) + '</span><span class="fcount">' + countLabel(data.filter(r => r.folder_id === f.id).length) + '</span></a>').join("") + '</div>';
+    if (loose.length || !folders.length) h += (folders.length ? '<h2 class="section">Articles</h2>' : '') +
+      '<ul class="list">' + (loose.length ? loose.map(rowHtml).join("") : empty) + '</ul>';
+    out.innerHTML = h;
   };
   document.getElementById("q").oninput = draw;
   document.querySelectorAll("#pills button").forEach(b => b.onclick = () => {
@@ -40,6 +64,16 @@ async function showList() {
     draw();
   });
   draw();
+}
+async function showFolder() {
+  const {articles, error, folders} = await loadAll();
+  const f = folders.find(x => x.id === fid);
+  if (error || !f) { app.innerHTML = '<p class="empty">Collection not found. <a href="./">Back</a></p>'; return; }
+  document.title = f.name + " | malayalamoptional";
+  const rows = articles.filter(r => r.folder_id === fid);
+  app.innerHTML = '<a class="back" href="./">← All articles</a><div class="fhead"><img src="' + iconSrc(f) + '" alt="" width="96" height="96"><div>' +
+    '<p class="eyebrow">Collection</p><h1>' + esc(f.name) + '</h1><p class="sub">' + countLabel(rows.length) + '</p></div></div>' +
+    '<ul class="list">' + (rows.length ? rows.map(rowHtml).join("") : '<li class="empty">Nothing here yet.</li>') + '</ul>';
 }
 // Show the PDF through a blob URL so the storage host's security headers can't blank the viewer.
 async function loadPdf(url) {
@@ -74,7 +108,12 @@ async function showArticle() {
   document.body.classList.add("reading");
   const isPdf = /\.pdf$/i.test(a.file_path || "");
   const url = a.file_path ? sb.storage.from("docx").getPublicUrl(a.file_path).data.publicUrl : null;
-  app.innerHTML = '<a class="back" href="./">← All articles</a><article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
+  let back = '<a class="back" href="./">← All articles</a>';
+  if (a.folder_id) {
+    const {data:fo} = await sb.from("folders").select("id,name").eq("id", a.folder_id).maybeSingle();
+    if (fo) back = '<a class="back" href="?folder=' + esc(fo.id) + '">← ' + esc(fo.name) + '</a>';
+  }
+  app.innerHTML = back + '<article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
     '</span></p><h1>' + esc(a.title) + '</h1>' + (isPdf ? '<div class="content pdf"><iframe id="pdfv" title="' + esc(a.title) + '"></iframe></div>'
                       : '<div class="content">' + reflow(DOMPurify.sanitize(a.html)) + '</div>') +
     (url ? '<p><a class="btn" href="' + url + '"' + (isPdf ? ' target="_blank" rel="noopener">Open PDF' : ' download>Download .docx') + '</a></p>' : '') + '</article>';
@@ -89,7 +128,7 @@ function cfgProblem() {
 }
 function showProblem(m) { app.innerHTML = '<p class="flash"></p>'; app.firstChild.textContent = m; }
 const bad = cfgProblem();
-if (bad) showProblem(bad); else (id ? showArticle() : showList());
+if (bad) showProblem(bad); else (id ? showArticle() : fid ? showFolder() : showList());
 if (!bad) sb.auth.getSession().then(({data:{session}}) => {
   if (!session) return;
   const nav = document.getElementById("nav");
