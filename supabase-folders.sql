@@ -1,5 +1,5 @@
--- Run ONCE in Supabase > SQL Editor (safe to re-run). No editing needed.
--- Adds "collections": groups of articles shown as cards on the site.
+-- Run in Supabase > SQL Editor (safe to re-run, even if you ran an older version). No editing needed.
+-- Collections: groups of articles shown as cards (with image + text) on the site.
 do $$
 declare admin_email text;
 begin
@@ -24,6 +24,11 @@ begin
       using (lower(auth.jwt() ->> 'email') = %L)
       with check (lower(auth.jwt() ->> 'email') = %L)
   $p$, admin_email, admin_email);
+
+  -- Card content for each collection (image, description, button text)
+  alter table public.folders add column if not exists description text;
+  alter table public.folders add column if not exists button_text text;
+  alter table public.folders add column if not exists image_path text;
 
   -- Which collection an article belongs to (deleting a collection keeps its articles)
   alter table public.articles
