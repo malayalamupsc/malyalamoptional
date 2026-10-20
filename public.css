@@ -315,6 +315,21 @@ body.pub a.btn:hover { transform: scale(1.02); box-shadow: 0 2px 4px rgba(8, 84,
 body.pub a.btn:active { transform: scale(0.98); }
 @media (prefers-color-scheme: dark) { body.pub a.btn { outline: 1px solid rgba(225, 236, 230, 0.18); } }
 
+/* ---- Homepage background pattern --------------------------------------- */
+body.pub.home::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("pattern.webp") center top / max(1000px, 75vw) auto repeat;
+  opacity: 0.32;
+}
+@media (prefers-color-scheme: dark) {
+  body.pub.home::before { filter: invert(1) brightness(1.4); opacity: 0.25; }
+}
+@media print { body.pub.home::before { display: none; } }
+
 /* ---- Collections (cards) ---------------------------------------------- */
 body.pub h2.section {
   margin: 48px 0 18px;
