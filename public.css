@@ -292,6 +292,12 @@ body.pub.reading .content > * {
   body.pub.reading .content { padding: 24px 16px; }
 }
 
+/* PDF articles */
+body.pub .content.pdf { padding: 0; overflow: hidden; }
+body.pub .content.pdf iframe { display: block; width: 100%; height: 82vh; min-height: 480px; border: 0; background: var(--sage); }
+body.pub.reading .content.pdf > * { max-width: none; margin-inline: 0; }
+body.pub .pdf-tag { color: #FFFFFF; background: var(--forest); }
+
 /* Download CTA */
 body.pub a.btn {
   display: inline-block;

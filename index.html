@@ -16,7 +16,7 @@
 const app = document.getElementById("app");
 const id = new URLSearchParams(location.search).get("id");
 async function showList() {
-  const {data, error} = await sb.from("articles").select("id,title,category,created_at").order("created_at", {ascending:false});
+  const {data, error} = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", {ascending:false});
   if (error) { app.innerHTML = '<p class="empty">Could not load articles.</p>'; return; }
   let cat = "";
   app.innerHTML = '<p class="eyebrow">Study library</p><h1>Malayalam Optional notes and articles</h1>' +
@@ -30,7 +30,7 @@ async function showList() {
     const q = document.getElementById("q").value.toLowerCase();
     const rows = data.filter(r => r.title.toLowerCase().includes(q) && (!cat || r.category === cat));
     document.getElementById("list").innerHTML = rows.length ? rows.map(r =>
-      '<li><a href="?id=' + r.id + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span><span class="date">' + fmt(r.created_at) + '</span></li>').join("")
+      '<li><a href="?id=' + r.id + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span>' + (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + '<span class="date">' + fmt(r.created_at) + '</span></li>').join("")
       : '<li class="empty">No articles found.</li>';
   };
   document.getElementById("q").oninput = draw;
@@ -41,15 +41,26 @@ async function showList() {
   });
   draw();
 }
+// Show the PDF through a blob URL so the storage host's security headers can't blank the viewer.
+async function loadPdf(url) {
+  const fr = document.getElementById("pdfv");
+  try {
+    const buf = await (await fetch(url)).arrayBuffer();
+    fr.src = URL.createObjectURL(new Blob([buf], {type: "application/pdf"}));
+  } catch (e) { fr.src = url; }
+}
 async function showArticle() {
   const {data:a, error} = await sb.from("articles").select("*").eq("id", id).single();
   if (error || !a) { app.innerHTML = '<p class="empty">Article not found. <a href="./">Back</a></p>'; return; }
   document.title = a.title + " | malayalamoptional";
   document.body.classList.add("reading");
+  const isPdf = /\.pdf$/i.test(a.file_path || "");
   const url = a.file_path ? sb.storage.from("docx").getPublicUrl(a.file_path).data.publicUrl : null;
   app.innerHTML = '<a class="back" href="./">← All articles</a><article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
-    '</span></p><h1>' + esc(a.title) + '</h1><div class="content">' + DOMPurify.sanitize(a.html) + '</div>' +
-    (url ? '<p><a class="btn" href="' + url + '" download>Download .docx</a></p>' : '') + '</article>';
+    '</span></p><h1>' + esc(a.title) + '</h1>' + (isPdf ? '<div class="content pdf"><iframe id="pdfv" title="' + esc(a.title) + '"></iframe></div>'
+                      : '<div class="content">' + DOMPurify.sanitize(a.html) + '</div>') +
+    (url ? '<p><a class="btn" href="' + url + '"' + (isPdf ? ' target="_blank" rel="noopener">Open PDF' : ' download>Download .docx') + '</a></p>' : '') + '</article>';
+  if (isPdf) loadPdf(url);
 }
 function cfgProblem() {
   try { if (!sb) return "Setup error."; }

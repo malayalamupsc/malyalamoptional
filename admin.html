@@ -37,10 +37,10 @@ async function showAdmin() {
   app.innerHTML = '<h1>Upload an article</h1><p class="sub">Add a Word document and publish it in one step.</p><form class="card" id="f">' +
     '<div class="field"><label for="t">Title <span class="opt">(optional, defaults to file name)</span></label><input type="text" id="t" autocomplete="off"></div>' +
     '<div class="field"><label for="c">Category</label><select id="c">' + CATEGORIES.map(c => '<option>' + esc(c) + '</option>').join("") + '</select></div>' +
-    '<div class="field"><span class="lbl">Word file</span><div class="drop" id="drop">' +
-      '<input type="file" id="file" accept=".docx" required aria-label="Choose a Word file">' +
+    '<div class="field"><span class="lbl">File (Word or PDF)</span><div class="drop" id="drop">' +
+      '<input type="file" id="file" accept=".docx,.pdf,application/pdf" required aria-label="Choose a Word or PDF file">' +
       '<span class="drop-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span>' +
-      '<span class="drop-title" id="dropTitle">Drop your .docx here</span>' +
+      '<span class="drop-title" id="dropTitle">Drop your .docx or .pdf here</span>' +
       '<span class="drop-hint" id="dropHint">or browse from your device</span>' +
       '<span class="btn-secondary" aria-hidden="true">Choose file</span></div></div>' +
     '<button class="cta" id="go">Publish</button>' +
@@ -50,7 +50,7 @@ async function showAdmin() {
   const syncDrop = () => {
     const f = fileIn.files[0];
     drop.classList.toggle("has-file", !!f);
-    dropTitle.textContent = f ? f.name : "Drop your .docx here";
+    dropTitle.textContent = f ? f.name : "Drop your .docx or .pdf here";
     dropHint.textContent = f ? (f.size / 1024 < 1024 ? Math.round(f.size / 1024) + " KB" : (f.size / 1048576).toFixed(1) + " MB") + " · click to replace" : "or browse from your device";
   };
   fileIn.addEventListener("change", syncDrop);
@@ -64,14 +64,16 @@ async function upload(e) {
   e.preventDefault();
   const n = document.getElementById("note"), go = document.getElementById("go"), f = document.getElementById("file").files[0];
   n.hidden = false;
-  if (!f || !f.name.toLowerCase().endsWith(".docx")) { n.textContent = "Choose a .docx file."; return; }
-  go.disabled = true; n.textContent = "Converting and uploading…";
+  const ext = f ? (f.name.toLowerCase().match(/\.(docx|pdf)$/) || [])[1] : null;
+  if (!ext) { n.textContent = "Choose a .docx or .pdf file."; return; }
+  go.disabled = true; n.textContent = ext === "pdf" ? "Uploading…" : "Converting and uploading…";
   try {
-    const {value:html} = await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()});
-    const path = crypto.randomUUID() + ".docx";
-    let r = await sb.storage.from("docx").upload(path, f, {contentType: f.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+    const html = ext === "pdf" ? "" : (await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()})).value;
+    const path = crypto.randomUUID() + "." + ext;
+    const type = ext === "pdf" ? "application/pdf" : (f.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    let r = await sb.storage.from("docx").upload(path, f, {contentType: type});
     if (r.error) throw r.error;
-    const title = document.getElementById("t").value.trim() || f.name.replace(/\.docx$/i, "");
+    const title = document.getElementById("t").value.trim() || f.name.replace(/\.(docx|pdf)$/i, "");
     r = await sb.from("articles").insert({title, category: document.getElementById("c").value, html, file_path: path});
     if (r.error) { await sb.storage.from("docx").remove([path]); throw r.error; }
     n.textContent = "Published: " + title; document.getElementById("f").reset(); loadList();
