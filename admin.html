@@ -7,11 +7,13 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="card.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script></head><body class="admin">
 <header class="top"><a class="brand" href="./"><img src="logo.png" alt="" width="70" height="38"><span>malayalamoptional</span></a><nav id="nav"></nav></header>
 <main id="app"></main>
 <script src="config.js"></script>
+<script src="card.js"></script>
 <script>
 const app = document.getElementById("app"), nav = document.getElementById("nav");
 const note = m => { let n = document.getElementById("note"); if (n) n.textContent = m; };
@@ -46,11 +48,18 @@ async function showAdmin() {
       '<span class="btn-secondary" aria-hidden="true">Choose file</span></div></div>' +
     '<button class="cta" id="go">Publish</button>' +
     '<p id="note" class="flash" hidden></p></form>' +
-    '<h2>Collections</h2><form class="card" id="cf"><p class="hint">Group related articles together. Each collection shows on the site as a card.</p>' +
-    '<div class="field"><label for="cn">Collection name</label><input type="text" id="cn" autocomplete="off" placeholder="e.g. Kannassa Ramayanam"></div>' +
-    '<div class="field"><span class="lbl">Card</span><div class="picker" id="picker">' +
-    [1,2,3,4,5,6,7,8,9].map(n => '<label class="pick"><input type="radio" name="ic" value="' + n + '"' + (n === 1 ? ' checked' : '') + '><img src="card-' + n + '.png" alt="Card ' + n + '" width="64" height="64"></label>').join("") +
-    '</div></div><div class="btns"><button class="cta" id="cb">Create collection</button><button type="button" class="sec" id="cc" hidden>Cancel</button></div>' +
+    '<h2>Collections</h2><form class="card" id="cf"><p class="hint">Each collection shows on the site as a card. Add a picture and the text for it.</p>' +
+    '<div class="field"><label for="cn">Card title</label><input type="text" id="cn" autocomplete="off" placeholder="e.g. Kannassa Ramayanam"></div>' +
+    '<div class="field"><label for="cd">Description <span class="opt">(optional)</span></label><textarea id="cd" rows="3" placeholder="A short line about this collection"></textarea></div>' +
+    '<div class="field"><label for="cbt">Button text</label><input type="text" id="cbt" value="Explore" autocomplete="off"></div>' +
+    '<div class="field"><span class="lbl">Card image</span><div class="drop" id="cdrop">' +
+      '<input type="file" id="cimg" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" aria-label="Choose a card image">' +
+      '<span class="drop-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/></svg></span>' +
+      '<span class="drop-title" id="cdt">Drop an image here</span><span class="drop-hint" id="cdh">PNG, JPG or WebP · landscape (4:3) looks best</span>' +
+      '<span class="btn-secondary" aria-hidden="true">Choose image</span></div>' +
+      '<button type="button" class="ghost-btn" id="crm" hidden>Remove current image</button></div>' +
+    '<div class="field"><span class="lbl">Preview</span><div class="prev" id="cprev"></div></div>' +
+    '<div class="btns"><button class="cta" id="cb">Create collection</button><button type="button" class="sec" id="cc" hidden>Cancel</button></div>' +
     '<p id="cnote" class="flash" hidden></p></form><ul class="list" id="flist"></ul>' +
     '<h2>Published</h2><ul class="list" id="list"></ul>';
   const form = document.getElementById("f"), drop = document.getElementById("drop"), fileIn = document.getElementById("file");
@@ -68,64 +77,134 @@ async function showAdmin() {
   form.onsubmit = upload;
   document.getElementById("cf").onsubmit = saveFolder;
   document.getElementById("cc").onclick = resetFolderForm;
+  ["cn", "cd", "cbt"].forEach(i => document.getElementById(i).addEventListener("input", renderPreview));
+  const cimg = document.getElementById("cimg"), cdrop = document.getElementById("cdrop");
+  cimg.addEventListener("change", () => {
+    const f = cimg.files[0];
+    if (cardImg.url) URL.revokeObjectURL(cardImg.url);
+    cardImg.file = f || null; cardImg.url = f ? URL.createObjectURL(f) : null; cardImg.remove = false;
+    cdrop.classList.toggle("has-file", !!f);
+    document.getElementById("cdt").textContent = f ? f.name : "Drop an image here";
+    document.getElementById("cdh").textContent = f ? "click to replace" : "PNG, JPG or WebP · landscape (4:3) looks best";
+    renderPreview();
+  });
+  ["dragenter", "dragover"].forEach(ev => cimg.addEventListener(ev, () => cdrop.classList.add("over")));
+  ["dragleave", "drop"].forEach(ev => cimg.addEventListener(ev, () => cdrop.classList.remove("over")));
+  document.getElementById("crm").onclick = () => { cardImg.remove = true; renderPreview(); };
   await loadFolders();
   loadList();
 }
-let FOLDERS = [], foldersOk = true, editingId = null;
+let FOLDERS = [], foldersOk = true, cardsOk = true, editingId = null;
+const cardImg = {file: null, url: null, existing: null, remove: false};
 const folderOptions = sel => '<option value="">No collection</option>' + FOLDERS.map(f =>
   '<option value="' + esc(f.id) + '"' + (f.id === sel ? " selected" : "") + '>' + esc(f.name) + '</option>').join("");
-const cardSrc = f => "card-" + (/^[1-9]$/.test(f.icon) ? f.icon : "1") + ".png";
 async function loadFolders() {
   const r = await sb.from("folders").select("*").order("created_at");
   foldersOk = !r.error; FOLDERS = r.error ? [] : r.data;
+  // Card image/text columns come from the updated SQL; check they exist.
+  cardsOk = foldersOk && !(await sb.from("folders").select("description,button_text,image_path").limit(1)).error;
   renderFolders();
+}
+function renderPreview() {
+  const f = editingId ? FOLDERS.find(x => x.id === editingId) : null;
+  const cnt = f ? document.querySelectorAll('#list select.mv option[value="' + f.id + '"]:checked').length : 0;
+  const img = cardImg.url || (!cardImg.remove && cardImg.existing ? cardImgUrl(cardImg.existing) : null);
+  document.getElementById("cprev").innerHTML = cardHtml({
+    title: document.getElementById("cn").value.trim(), desc: document.getElementById("cd").value.trim(),
+    btn: document.getElementById("cbt").value.trim(), img, badge: cnt + (cnt === 1 ? " article" : " articles")});
+  document.getElementById("crm").hidden = !(cardImg.existing && !cardImg.remove && !cardImg.url);
 }
 function renderFolders() {
   const fl = document.getElementById("flist"), cf = document.getElementById("cf"), fo = document.getElementById("fo");
-  if (!foldersOk) {
-    cf.hidden = true; document.getElementById("fofield").hidden = true;
-    fl.innerHTML = '<li class="empty">Collections need a one-time database update. Run supabase-folders.sql in the Supabase SQL Editor, then reload this page.</li>';
+  if (!foldersOk || !cardsOk) {
+    cf.hidden = true; document.getElementById("fofield").hidden = !foldersOk || !FOLDERS.length;
+    fl.innerHTML = '<li class="empty">Collections need a one-time database update. Open the Supabase SQL Editor, run the latest supabase-folders.sql, then reload this page.</li>';
+    if (foldersOk) fo.innerHTML = folderOptions(fo.value);
     return;
   }
   cf.hidden = false;
   const keep = fo.value;
   fo.innerHTML = folderOptions(keep);
   document.getElementById("fofield").hidden = !FOLDERS.length;
-  fl.innerHTML = FOLDERS.length ? FOLDERS.map(f => '<li><img class="fi" src="' + cardSrc(f) + '" alt="" width="44" height="44"><span class="fn">' + esc(f.name) +
-    '</span><button type="button" class="ghost-btn" data-e="' + esc(f.id) + '">Edit</button><button type="button" class="danger" data-d="' + esc(f.id) + '">Delete</button></li>').join("")
-    : '<li class="empty">No collections yet. Create your first one above.</li>';
+  fl.innerHTML = FOLDERS.length ? FOLDERS.map(f => {
+    const u = cardImgUrl(f.image_path);
+    return '<li><img class="fi" src="' + esc(u || "favicon.png") + '" alt="" width="56" height="44"><span class="fn">' + esc(f.name) +
+      '</span><button type="button" class="ghost-btn" data-e="' + esc(f.id) + '">Edit</button><button type="button" class="danger" data-d="' + esc(f.id) + '">Delete</button></li>';
+  }).join("") : '<li class="empty">No collections yet. Create your first one above.</li>';
   fl.querySelectorAll("[data-e]").forEach(b => b.onclick = () => {
     const f = FOLDERS.find(x => x.id === b.dataset.e); if (!f) return;
     editingId = f.id;
-    document.getElementById("cn").value = f.name;
-    const r = document.querySelector('input[name=ic][value="' + (/^[1-9]$/.test(f.icon) ? f.icon : "1") + '"]'); if (r) r.checked = true;
+    document.getElementById("cn").value = f.name || "";
+    document.getElementById("cd").value = f.description || "";
+    document.getElementById("cbt").value = f.button_text || "Explore";
+    clearPicked(); cardImg.existing = f.image_path || null; cardImg.remove = false;
     document.getElementById("cb").textContent = "Save changes"; document.getElementById("cc").hidden = false;
+    renderPreview();
     document.getElementById("cf").scrollIntoView({behavior: "smooth", block: "center"}); document.getElementById("cn").focus();
   });
   fl.querySelectorAll("[data-d]").forEach(b => b.onclick = async () => {
     if (!confirm("Delete this collection? Its articles are kept and will show as normal articles.")) return;
+    const f = FOLDERS.find(x => x.id === b.dataset.d);
     const r = await sb.from("folders").delete().eq("id", b.dataset.d);
     if (r.error) { alert("Could not delete: " + r.error.message); return; }
+    if (f && f.image_path) await sb.storage.from("docx").remove([f.image_path]);
     if (editingId === b.dataset.d) resetFolderForm();
     await loadFolders(); loadList();
   });
+  renderPreview();
+}
+function clearPicked() {
+  if (cardImg.url) URL.revokeObjectURL(cardImg.url);
+  cardImg.file = null; cardImg.url = null;
+  const i = document.getElementById("cimg"); if (i) i.value = "";
+  const t = document.getElementById("cdt"); if (t) { t.textContent = "Drop an image here"; document.getElementById("cdh").textContent = "PNG, JPG or WebP · landscape (4:3) looks best"; }
+  const d = document.getElementById("cdrop"); if (d) d.classList.remove("has-file");
 }
 function resetFolderForm() {
-  editingId = null;
-  document.getElementById("cn").value = "";
-  document.querySelector('input[name=ic][value="1"]').checked = true;
+  editingId = null; clearPicked(); cardImg.existing = null; cardImg.remove = false;
+  document.getElementById("cn").value = ""; document.getElementById("cd").value = ""; document.getElementById("cbt").value = "Explore";
   document.getElementById("cb").textContent = "Create collection"; document.getElementById("cc").hidden = true;
+  renderPreview();
+}
+// Shrink big photos before upload so cards load fast.
+async function shrinkImage(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1200 / bmp.width), w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    const blob = await new Promise(r => cv.toBlob(r, "image/webp", 0.86));
+    if (blob) return {blob, ext: "webp", type: "image/webp"};
+  } catch (e) {}
+  const ext = ((file.name.match(/\.(png|jpe?g|webp)$/i) || [])[1] || "png").toLowerCase();
+  return {blob: file, ext, type: file.type || "image/png"};
 }
 async function saveFolder(e) {
   e.preventDefault();
-  const n = document.getElementById("cnote"), name = document.getElementById("cn").value.trim();
-  const icon = (document.querySelector("input[name=ic]:checked") || {}).value || "1";
+  const n = document.getElementById("cnote"), go = document.getElementById("cb"), name = document.getElementById("cn").value.trim();
   n.hidden = false;
-  if (!name) { n.textContent = "Enter a collection name."; return; }
-  const r = editingId ? await sb.from("folders").update({name, icon}).eq("id", editingId) : await sb.from("folders").insert({name, icon});
-  if (r.error) { n.textContent = "Could not save: " + r.error.message; return; }
-  n.textContent = editingId ? "Saved." : "Collection created.";
-  resetFolderForm(); await loadFolders(); loadList();
+  if (!name) { n.textContent = "Enter a card title."; return; }
+  go.disabled = true; n.textContent = "Saving…";
+  let newPath = null, image_path = cardImg.remove ? null : cardImg.existing;
+  try {
+    if (cardImg.file) {
+      const {blob, ext, type} = await shrinkImage(cardImg.file);
+      newPath = "cards/" + crypto.randomUUID() + "." + ext;
+      const up = await sb.storage.from("docx").upload(newPath, blob, {contentType: type});
+      if (up.error) throw up.error;
+      image_path = newPath;
+    }
+    const row = {name, description: document.getElementById("cd").value.trim() || null,
+      button_text: document.getElementById("cbt").value.trim() || "Explore", image_path};
+    const r = editingId ? await sb.from("folders").update(row).eq("id", editingId) : await sb.from("folders").insert(row);
+    if (r.error) throw r.error;
+    if (cardImg.existing && image_path !== cardImg.existing) await sb.storage.from("docx").remove([cardImg.existing]);
+    n.textContent = editingId ? "Saved." : "Collection created.";
+    resetFolderForm(); await loadFolders(); loadList();
+  } catch (err) {
+    if (newPath) await sb.storage.from("docx").remove([newPath]);
+    n.textContent = "Could not save: " + (err.message || err);
+  }
+  go.disabled = false;
 }
 async function upload(e) {
   e.preventDefault();
