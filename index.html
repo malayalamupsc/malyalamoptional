@@ -49,6 +49,24 @@ async function loadPdf(url) {
     fr.src = URL.createObjectURL(new Blob([buf], {type: "application/pdf"}));
   } catch (e) { fr.src = url; }
 }
+// Some Word files (e.g. converted from PDF) have every printed line as its own paragraph.
+// Detect that and join the broken lines back into proper paragraphs. Normal files are untouched.
+function reflow(html) {
+  const box = document.createElement("div"); box.innerHTML = html;
+  const END = /[.?!:;)\]"'”’।…]$/, NEWITEM = /^(\d+|[A-Za-z]|[൦-൯]+)[.)]\s/;
+  const txt = el => el.textContent.replace(/\s+/g, " ").trim();
+  const ps = [...box.children].filter(e => e.tagName === "P" && txt(e));
+  const broken = ps.filter(p => txt(p).length < 100 && !END.test(txt(p))).length;
+  if (ps.length < 8 || broken / ps.length < 0.4) return html;
+  let cur = null, lastLen = 0;
+  [...box.children].forEach(el => {
+    const t = cur && txt(cur), n = txt(el);
+    if (cur && el.tagName === "P" && cur.tagName === "P" && n && t && lastLen < 100 && !END.test(t) && !NEWITEM.test(n)) {
+      cur.append(" ", ...el.childNodes); el.remove(); lastLen = n.length;
+    } else { cur = el; lastLen = n.length; }
+  });
+  return box.innerHTML;
+}
 async function showArticle() {
   const {data:a, error} = await sb.from("articles").select("*").eq("id", id).single();
   if (error || !a) { app.innerHTML = '<p class="empty">Article not found. <a href="./">Back</a></p>'; return; }
@@ -58,7 +76,7 @@ async function showArticle() {
   const url = a.file_path ? sb.storage.from("docx").getPublicUrl(a.file_path).data.publicUrl : null;
   app.innerHTML = '<a class="back" href="./">← All articles</a><article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
     '</span></p><h1>' + esc(a.title) + '</h1>' + (isPdf ? '<div class="content pdf"><iframe id="pdfv" title="' + esc(a.title) + '"></iframe></div>'
-                      : '<div class="content">' + DOMPurify.sanitize(a.html) + '</div>') +
+                      : '<div class="content">' + reflow(DOMPurify.sanitize(a.html)) + '</div>') +
     (url ? '<p><a class="btn" href="' + url + '"' + (isPdf ? ' target="_blank" rel="noopener">Open PDF' : ' download>Download .docx') + '</a></p>' : '') + '</article>';
   if (isPdf) loadPdf(url);
 }
