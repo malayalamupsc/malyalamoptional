@@ -1,5 +1,5 @@
-:root{--bg:#f7f8f7;--surface:#fff;--ink:#0e1c19;--mute:#566b66;--line:#dde5e2;--accent:#0a5c4a;--on:#fff;--chip:#e4efea;--bad:#b3261e;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root{--bg:#0b1513;--surface:#121f1c;--ink:#e8f1ee;--mute:#8fa8a1;--line:#223833;--accent:#58d1b0;--on:#06211a;--chip:#173029;--bad:#ff8a80}}
+:root{--bg:#f7f8f7;--surface:#fff;--ink:#0e1c19;--mute:#566b66;--line:#dde5e2;--accent:#0a5c4a;--on:#fff;--chip:#e4efea;--bad:#b3261e}
+html[data-theme="dark"]{--bg:#0b1513;--surface:#121f1c;--ink:#e8f1ee;--mute:#8fa8a1;--line:#223833;--accent:#58d1b0;--on:#06211a;--chip:#173029;--bad:#ff8a80;color-scheme:dark}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:5rem}
 body{margin:0;background:var(--bg);color:var(--ink);font:1.0625rem/1.75 Inter,"Noto Sans Malayalam",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 h1,h2,.brand{font-family:"Noto Serif Malayalam",Georgia,serif;line-height:1.35;letter-spacing:-.01em}

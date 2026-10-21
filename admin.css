@@ -32,8 +32,8 @@ body.admin {
   letter-spacing: -0.005em;
 }
 
-@media (prefers-color-scheme: dark) {
-  body.admin {
+/* dark theme */
+html[data-theme="dark"] body.admin {
     --canvas: var(--charcoal);
     --card: rgba(253, 252, 250, 0.04);
     --text: var(--cream);
@@ -47,7 +47,7 @@ body.admin {
     --btn2-fg: var(--sage);
     --danger: #E7A89F;
   }
-}
+
 
 /* ---- Page chrome ------------------------------------------------------- */
 body.admin .top {
@@ -163,10 +163,10 @@ body.admin select:focus {
   background: var(--field-focus);
   box-shadow: 0 0 0 4px var(--ring);
 }
-@media (prefers-color-scheme: dark) {
-  body.admin input:focus,
-  body.admin select:focus { border-color: var(--sage); }
-}
+/* dark theme */
+html[data-theme="dark"] body.admin input:focus,
+html[data-theme="dark"] body.admin select:focus { border-color: var(--sage); }
+
 body.admin select {
   padding-right: 44px;
   cursor: pointer;
@@ -174,12 +174,12 @@ body.admin select {
   background-repeat: no-repeat;
   background-position: right 16px center;
 }
-@media (prefers-color-scheme: dark) {
-  body.admin select {
+/* dark theme */
+html[data-theme="dark"] body.admin select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23E1ECE6' stroke-opacity='.7' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
-  body.admin select option { background: var(--charcoal); color: var(--cream); }
-}
+html[data-theme="dark"] body.admin select option { background: var(--charcoal); color: var(--cream); }
+
 
 /* ---- File drop zone ---------------------------------------------------- */
 body.admin .drop {
@@ -195,9 +195,9 @@ body.admin .drop {
   border-radius: 16px;
   transition: border-color 0.3s var(--ease), background-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
-@media (prefers-color-scheme: dark) {
-  body.admin .drop { border-color: rgba(253, 252, 250, 0.2); }
-}
+/* dark theme */
+html[data-theme="dark"] body.admin .drop { border-color: rgba(253, 252, 250, 0.2); }
+
 body.admin .drop:hover,
 body.admin .drop.over {
   border-color: var(--forest);
@@ -207,11 +207,11 @@ body.admin .drop:focus-within {
   border-color: var(--forest);
   box-shadow: 0 0 0 4px var(--ring);
 }
-@media (prefers-color-scheme: dark) {
-  body.admin .drop:hover,
-  body.admin .drop.over,
-  body.admin .drop:focus-within { border-color: var(--sage); }
-}
+/* dark theme */
+html[data-theme="dark"] body.admin .drop:hover,
+html[data-theme="dark"] body.admin .drop.over,
+html[data-theme="dark"] body.admin .drop:focus-within { border-color: var(--sage); }
+
 /* Real input stretched invisibly over the zone: click, keyboard and
    native drag-and-drop all work, and `required` validation still fires. */
 body.admin .drop input[type=file] {
@@ -234,9 +234,9 @@ body.admin .drop-icon {
   background: var(--sage);
   color: var(--forest);
 }
-@media (prefers-color-scheme: dark) {
-  body.admin .drop-icon { background: rgba(225, 236, 230, 0.12); color: var(--sage); }
-}
+/* dark theme */
+html[data-theme="dark"] body.admin .drop-icon { background: rgba(225, 236, 230, 0.12); color: var(--sage); }
+
 body.admin .drop-title {
   font-size: 15px;
   font-weight: 500;
@@ -284,9 +284,9 @@ body.admin button.cta:hover { transform: scale(1.02); box-shadow: 0 2px 4px rgba
 body.admin button.cta:active { transform: scale(0.98); }
 body.admin button.cta:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--ring), 0 0 0 1.5px var(--forest); }
 body.admin button.cta:disabled { opacity: 0.55; cursor: wait; transform: none; }
-@media (prefers-color-scheme: dark) {
-  body.admin button.cta { background: var(--forest); outline: 1px solid rgba(225, 236, 230, 0.18); }
-}
+/* dark theme */
+html[data-theme="dark"] body.admin button.cta { background: var(--forest); outline: 1px solid rgba(225, 236, 230, 0.18); }
+
 
 /* Status message */
 body.admin .flash {
@@ -298,7 +298,9 @@ body.admin .flash {
   border-radius: 12px;
 }
 body.admin .flash[hidden] { display: none; }
-@media (prefers-color-scheme: dark) { body.admin .flash { color: var(--sage); background: rgba(225, 236, 230, 0.1); } }
+/* dark theme */
+html[data-theme="dark"] body.admin .flash { color: var(--sage); background: rgba(225, 236, 230, 0.1); }
+
 
 /* ---- Published list ---------------------------------------------------- */
 body.admin .list {
@@ -382,6 +384,8 @@ body.admin textarea {
 }
 body.admin textarea:hover { border-color: var(--hairline); }
 body.admin textarea:focus { border-color: var(--forest); background: var(--field-focus); box-shadow: 0 0 0 4px var(--ring); }
-@media (prefers-color-scheme: dark) { body.admin textarea:focus { border-color: var(--sage); } }
+/* dark theme */
+html[data-theme="dark"] body.admin textarea:focus { border-color: var(--sage); }
+
 body.admin .prev { display: flex; justify-content: center; padding: 24px 16px; background: color-mix(in srgb, var(--sage) 35%, transparent); border-radius: 16px; }
 body.admin #crm { justify-self: start; padding-left: 0; }
