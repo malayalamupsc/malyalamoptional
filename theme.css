@@ -39,3 +39,19 @@ header.top nav { margin-left: auto; }
 html[data-theme="dark"] .install-btn { color: #06211a; background: var(--sage, #E1ECE6); }
 .install-btn[hidden] { display: none; }
 @media (max-width: 480px) { .install-btn { padding: 0 10px; font-size: 12px; } }
+
+/* ---- Malayalam style: the bold Noto Serif Malayalam look is used for everything except article paragraphs ---- */
+body.pub, body.admin, body.pub button, body.admin button, body.pub input, body.admin input, body.pub select, body.admin select, body.pub textarea, body.admin textarea,
+.cc, .cc * { font-family: "SF Pro Display", Inter, "Noto Serif Malayalam", system-ui, sans-serif; }
+body.pub, body.admin, .cc, .cc-title, .cc-desc, .cc-btn, .cc-badge,
+body.pub .brand, body.pub nav a, body.pub .eyebrow, body.pub .sub, body.pub .section, body.pub .back, body.pub .chip, body.pub .date,
+body.pub .list a, body.pub .pills button, body.pub .btn, body.pub a.btn, body.pub .search input, body.pub footer, body.pub .empty, body.pub .flash,
+body.admin .brand, body.admin nav a, body.admin .sub, body.admin .sec, body.admin .lbl, body.admin .hint, body.admin .field, body.admin .opt,
+body.admin .drop-title, body.admin .drop-hint, body.admin button, body.admin input, body.admin select, body.admin textarea, body.admin .fn, body.admin .list, body.admin .empty {
+  font-weight: 700;
+}
+/* article text keeps a readable weight; bold and headings inside it stay bold */
+body.pub .content, body.pub .content p, body.pub .content li, body.pub .content td, body.pub .content blockquote { font-weight: 400; }
+body.pub .content b, body.pub .content strong, body.pub .content h1, body.pub .content h2, body.pub .content h3 { font-weight: 700; }
+body.pub .content { font-family: "Noto Serif Malayalam", Georgia, serif; }
+body.pub .edit-bar button { font-weight: 600; }

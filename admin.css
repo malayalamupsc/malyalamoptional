@@ -24,7 +24,7 @@ body.admin {
   --danger: #8C2F25;
 
   --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
-  --font: "SF Pro Display", Inter, "Manjari", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "SF Pro Display", Inter, "Noto Serif Malayalam", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   background: var(--canvas);
   color: var(--text);
@@ -389,6 +389,3 @@ html[data-theme="dark"] body.admin textarea:focus { border-color: var(--sage); }
 
 body.admin .prev { display: flex; justify-content: center; padding: 24px 16px; background: color-mix(in srgb, var(--sage) 35%, transparent); border-radius: 16px; }
 body.admin #crm { justify-self: start; padding-left: 0; }
-
-/* Malayalam typeface: Manjari everywhere */
-body.admin, body.admin button, body.admin input, body.admin select, body.admin textarea { font-family: var(--font); }

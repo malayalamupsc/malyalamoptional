@@ -24,8 +24,8 @@ body.pub {
   --shadow: 0 4px 30px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.04);
 
   --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
-  --font: "SF Pro Display", Inter, "Manjari", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --serif: "Manjari", "Noto Sans Malayalam", system-ui, sans-serif;
+  --font: "SF Pro Display", Inter, "Noto Serif Malayalam", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Noto Serif Malayalam", Georgia, serif;
 
   background: var(--canvas);
   color: var(--text);
@@ -471,8 +471,3 @@ body.pub .content h1 *, body.pub .content h2 *, body.pub .content h3 * {
   body.pub .content h2 { font-size: 22px !important; }
   body.pub .content h3 { font-size: 19px !important; }
 }
-
-/* ---- Malayalam typeface: Manjari everywhere (Latin text stays Inter) ---- */
-html, body, button, input, select, textarea { font-family: var(--font, "Manjari", Inter, system-ui, sans-serif); }
-body.pub .content, body.pub .content p, body.pub .content li { font-family: var(--serif); font-size: 19px; }
-body.pub .content h1, body.pub .content h2, body.pub .content h3 { font-family: "Manjari", Inter, sans-serif; font-weight: 700; }
