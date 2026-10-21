@@ -111,6 +111,8 @@ async function showArticle() {
   document.body.classList.add("reading");
   const isPdf = /\.pdf$/i.test(a.file_path || "");
   const url = a.file_path ? sb.storage.from("docx").getPublicUrl(a.file_path).data.publicUrl : null;
+  const {data:{session}} = await sb.auth.getSession();
+  const canEdit = !!session && !isPdf;
   let back = '<a class="back" href="./">← All articles</a>';
   if (a.folder_id) {
     const {data:fo} = await sb.from("folders").select("id,name").eq("id", a.folder_id).maybeSingle();
@@ -118,9 +120,117 @@ async function showArticle() {
   }
   app.innerHTML = back + '<article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
     '</span></p><h1>' + esc(a.title) + '</h1>' + (isPdf ? '<div class="content pdf"><iframe id="pdfv" title="' + esc(a.title) + '"></iframe></div>'
-                      : '<div class="content">' + reflow(DOMPurify.sanitize(a.html)) + '</div>') +
+                      : '<div class="content-wrap">' + (canEdit ? '<button type="button" id="editBtn" class="edit-btn" title="Edit" aria-label="Edit article"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' : '') + '<div class="content" id="contentBox">' + reflow(DOMPurify.sanitize(a.html)) + '</div></div>') +
     (url ? '<p><a class="btn" href="' + url + '"' + (isPdf ? ' target="_blank" rel="noopener">Open PDF' : ' download>Download .docx') + '</a></p>' : '') + '</article>';
   if (isPdf) loadPdf(url);
+  if (canEdit) setupEditor(a.id);
+}
+
+// ---------- Inline editor (admin only; saving is enforced by Supabase RLS) ----------
+function setupEditor(articleId) {
+  const box = document.getElementById("contentBox"), btn = document.getElementById("editBtn");
+  let bar = null, original = "", dirty = false;
+  const ico = {
+    undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+    redo:'<path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
+    space:'<path d="M12 5v14"/><path d="m8 15 4 4 4-4"/><path d="m8 9 4-4 4 4" opacity=".0"/>'
+  };
+  const tools = [
+    ["bold","<b>B</b>","Bold (Ctrl+B)"],["italic","<i>I</i>","Italic (Ctrl+I)"],["underline","<u>U</u>","Underline (Ctrl+U)"],
+    ["|"],
+    ["quote","❝","Quote: turn selected lines into a poem quote (click again to remove)"],
+    ["space","¶＋","Add an empty line (space) below"],
+    ["unspace","¶－","Remove the empty line"],
+    ["|"],
+    ["undo","↶","Undo"],["redo","↷","Redo"]
+  ];
+  const blocksIn = () => {
+    const sel = getSelection(); if (!sel.rangeCount) return [];
+    const r = sel.getRangeAt(0), out = [];
+    [...box.children].forEach(el => { if (r.intersectsNode(el)) out.push(el); });
+    return out;
+  };
+  const inBox = () => { const s = getSelection(); return s.rangeCount && box.contains(s.anchorNode); };
+  function toggleQuote() {
+    const bl = blocksIn(); if (!bl.length) return;
+    if (bl.every(b => b.tagName === "BLOCKQUOTE")) {            // unwrap
+      bl.forEach(b => { while (b.firstChild) b.before(b.firstChild); b.remove(); });
+      return;
+    }
+    const q = document.createElement("blockquote"); q.className = "poem";
+    bl[0].before(q);
+    bl.forEach(b => {
+      if (b.tagName === "BLOCKQUOTE") { while (b.firstChild) q.append(b.firstChild); b.remove(); }
+      else if (/^(P|DIV)$/.test(b.tagName)) { const line = document.createElement("p"); line.innerHTML = b.innerHTML; q.append(line); b.remove(); }
+      else q.append(b);
+    });
+  }
+  function addSpace() {
+    const bl = blocksIn(), last = bl[bl.length - 1]; if (!last) return;
+    const p = document.createElement("p"); p.innerHTML = "<br>"; last.after(p);
+    getSelection().collapse(p, 0);
+  }
+  function removeSpace() {
+    const bl = blocksIn(); if (!bl.length) return;
+    const isEmpty = e => e && e.tagName === "P" && !e.textContent.trim() && !e.querySelector("img");
+    const t = [bl[0], bl[0].nextElementSibling, bl[0].previousElementSibling].find(isEmpty);
+    if (t) t.remove();
+  }
+  function run(cmd) {
+    box.focus();
+    if (cmd === "quote") toggleQuote();
+    else if (cmd === "space") addSpace();
+    else if (cmd === "unspace") removeSpace();
+    else document.execCommand(cmd, false, null);
+    dirty = true; sync();
+  }
+  function sync() {
+    if (!bar) return;
+    ["bold","italic","underline"].forEach(c => {
+      const b = bar.querySelector('[data-cmd="' + c + '"]'); let on = false;
+      try { on = inBox() && document.queryCommandState(c); } catch (e) {}
+      b.classList.toggle("on", on);
+    });
+    const q = bar.querySelector('[data-cmd="quote"]'), bl = inBox() ? blocksIn() : [];
+    q.classList.toggle("on", bl.length > 0 && bl.every(b => b.tagName === "BLOCKQUOTE"));
+  }
+  function buildBar() {
+    bar = document.createElement("div"); bar.className = "edit-bar";
+    bar.innerHTML = tools.map(t => t[0] === "|" ? '<span class="sep"></span>' :
+      '<button type="button" data-cmd="' + t[0] + '" title="' + esc(t[2]) + '" aria-label="' + esc(t[2]) + '">' + t[1] + '</button>').join("") +
+      '<span class="grow"></span><span class="status" id="editStatus"></span>' +
+      '<button type="button" class="cancel" id="editCancel">Cancel</button><button type="button" class="save" id="editSave">Save</button>';
+    bar.addEventListener("mousedown", e => { if (e.target.closest("button")) e.preventDefault(); }); // keep text selection
+    bar.addEventListener("click", e => {
+      const b = e.target.closest("[data-cmd]"); if (b) run(b.dataset.cmd);
+    });
+    box.parentNode.insertBefore(bar, box);
+    document.getElementById("editCancel").onclick = () => stop(false);
+    document.getElementById("editSave").onclick = save;
+  }
+  function start() {
+    original = box.innerHTML; dirty = false;
+    document.execCommand("defaultParagraphSeparator", false, "p");
+    box.contentEditable = "true"; box.classList.add("editing"); btn.hidden = true;
+    buildBar(); box.focus();
+  }
+  function stop(saved) {
+    if (!saved) { if (dirty && !confirm("Discard your changes?")) return; box.innerHTML = original; }
+    box.contentEditable = "false"; box.classList.remove("editing"); btn.hidden = false;
+    if (bar) { bar.remove(); bar = null; } dirty = false;
+  }
+  async function save() {
+    const st = document.getElementById("editStatus"), sv = document.getElementById("editSave");
+    sv.disabled = true; st.textContent = "Saving…";
+    const html = DOMPurify.sanitize(box.innerHTML);
+    const {data, error} = await sb.from("articles").update({html}).eq("id", articleId).select("id");
+    if (error || !data || !data.length) { st.textContent = "Could not save. Are you logged in as admin?"; sv.disabled = false; return; }
+    box.innerHTML = html; stop(true);
+  }
+  btn.onclick = start;
+  document.addEventListener("selectionchange", sync);
+  box.addEventListener("input", () => { dirty = true; });
+  window.addEventListener("beforeunload", e => { if (bar && dirty) { e.preventDefault(); e.returnValue = ""; } });
 }
 function cfgProblem() {
   try { if (!sb) return "Setup error."; }
