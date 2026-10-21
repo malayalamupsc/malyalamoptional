@@ -1,6 +1,9 @@
 <!doctype html><html lang="ml"><head><title>malayalamoptional</title>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://dyzbicavsmfoefomqdyt.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650&family=Noto+Serif+Malayalam:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -24,14 +27,27 @@ const countLabel = n => n + (n === 1 ? " article" : " articles");
 // Articles + collections. Falls back gracefully if the collections SQL has not been run yet.
 async function loadAll() {
   const ord = {ascending: false};
-  let r = await sb.from("articles").select("id,title,category,created_at,file_path,folder_id").order("created_at", ord);
+  const [r0, f] = await Promise.all([   // both requests at the same time
+    sb.from("articles").select("id,title,category,created_at,file_path,folder_id").order("created_at", ord),
+    sb.from("folders").select("*").order("created_at")]);
+  let r = r0;
   if (r.error) r = await sb.from("articles").select("id,title,category,created_at,file_path").order("created_at", ord);
-  const f = await sb.from("folders").select("*").order("created_at");
   return {articles: r.data || [], error: r.error, folders: f.error ? [] : (f.data || [])};
 }
-async function showList() {
-  const {articles: data, error, folders} = await loadAll();
-  if (error) { app.innerHTML = '<p class="empty">Could not load articles.</p>'; return; }
+// Stale-while-revalidate: paint instantly from the last visit, then refresh quietly in the background.
+async function swr(key, fetcher, paint) {
+  let c = null; try { c = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+  if (c) paint(c);
+  let fresh = null; try { fresh = await fetcher(); } catch (e) {}
+  if (!fresh) { if (!c) paint(null); return; }
+  try { localStorage.setItem(key, JSON.stringify(fresh)); } catch (e) {}
+  if (!c || JSON.stringify(c) !== JSON.stringify(fresh)) paint(fresh);
+}
+const listData = async () => { const d = await loadAll(); return d.error ? null : d; };
+function showList() { swr("ml:list", listData, d => {
+  if (document.getElementById("q") && document.getElementById("q").value) return;   // don't disturb an active search
+  if (!d) { app.innerHTML = '<p class="empty">Could not load articles.</p>'; return; }
+  const data = d.articles, folders = d.folders;
   document.body.classList.add("home");
   let cat = "";
   app.innerHTML = '<p class="eyebrow">Study library</p><h1>Malayalam Optional notes and articles</h1>' +
@@ -66,18 +82,17 @@ async function showList() {
     draw();
   });
   draw();
-}
-async function showFolder() {
-  const {articles, error, folders} = await loadAll();
-  const f = folders.find(x => x.id === fid);
-  if (error || !f) { app.innerHTML = '<p class="empty">Collection not found. <a href="./">Back</a></p>'; return; }
+}); }
+function showFolder() { swr("ml:list", listData, d => {
+  const articles = d ? d.articles : [], f = d && d.folders.find(x => x.id === fid);
+  if (!f) { app.innerHTML = '<p class="empty">Collection not found. <a href="./">Back</a></p>'; return; }
   document.title = f.name + " | malayalamoptional";
   const rows = articles.filter(r => r.folder_id === fid);
   const img = cardImgUrl(f.image_path);
   app.innerHTML = '<a class="back" href="./">← All articles</a><div class="fhead">' + (img ? '<img src="' + esc(img) + '" alt="" width="96" height="96">' : '') + '<div>' +
     '<p class="eyebrow">Collection</p><h1>' + esc(f.name) + '</h1><p class="sub">' + (f.description ? esc(f.description) + " · " : "") + countLabel(rows.length) + '</p></div></div>' +
     '<ul class="list">' + (rows.length ? rows.map(rowHtml).join("") : '<li class="empty">Nothing here yet.</li>') + '</ul>';
-}
+}); }
 // Show the PDF through a blob URL so the storage host's security headers can't blank the viewer.
 async function loadPdf(url) {
   const fr = document.getElementById("pdfv");
@@ -104,28 +119,32 @@ function reflow(html) {
   });
   return box.innerHTML;
 }
-async function showArticle() {
-  const {data:a, error} = await sb.from("articles").select("*").eq("id", id).single();
-  if (error || !a) { app.innerHTML = '<p class="empty">Article not found. <a href="./">Back</a></p>'; return; }
+const EDIT_ICON = '<button type="button" id="editBtn" class="edit-btn" title="Edit" aria-label="Edit article"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
+let loggedIn = false;
+function showArticle() { swr("ml:art:" + id, async () => {
+  const [{data:a, error}, {data:{session}}] = await Promise.all([sb.from("articles").select("*").eq("id", id).single(), sb.auth.getSession()]);
+  if (error || !a) return error && error.code !== "PGRST116" ? null : {missing: true};
+  let fo = null;
+  if (a.folder_id) { const r = await sb.from("folders").select("id,name").eq("id", a.folder_id).maybeSingle(); fo = r.data; }
+  return {a, fo};
+}, d => {
+  if (document.querySelector(".content.editing")) return;   // never overwrite text being edited
+  if (!d || d.missing) { app.innerHTML = '<p class="empty">Article not found. <a href="./">Back</a></p>'; return; }
+  const {a, fo} = d;
   document.title = a.title + " | malayalamoptional";
   document.body.classList.add("reading");
   const isPdf = /\.pdf$/i.test(a.file_path || "");
   const url = a.file_path ? sb.storage.from("docx").getPublicUrl(a.file_path).data.publicUrl : null;
-  const {data:{session}} = await sb.auth.getSession();
-  const canEdit = !!session && !isPdf;
+  const canEdit = !!loggedIn && !isPdf;
   let back = '<a class="back" href="./">← All articles</a>';
-  if (a.folder_id) {
-    const {data:fo} = await sb.from("folders").select("id,name").eq("id", a.folder_id).maybeSingle();
-    if (fo) back = '<a class="back" href="?folder=' + esc(fo.id) + '">← ' + esc(fo.name) + '</a>';
-  }
+  if (fo) back = '<a class="back" href="?folder=' + esc(fo.id) + '">← ' + esc(fo.name) + '</a>';
   app.innerHTML = back + '<article><p class="meta"><span class="chip">' + esc(a.category) + '</span><span class="date">' + fmt(a.created_at) +
     '</span></p><h1>' + esc(a.title) + '</h1>' + (isPdf ? '<div class="content pdf"><iframe id="pdfv" title="' + esc(a.title) + '"></iframe></div>'
-                      : '<div class="content-wrap">' + (canEdit ? '<button type="button" id="editBtn" class="edit-btn" title="Edit" aria-label="Edit article"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' : '') + '<div class="content" id="contentBox">' + reflow(DOMPurify.sanitize(a.html)) + '</div></div>') +
+                      : '<div class="content-wrap">' + (canEdit ? EDIT_ICON : '') + '<div class="content" id="contentBox">' + reflow(DOMPurify.sanitize(a.html)) + '</div></div>') +
     (url ? '<p><a class="btn" href="' + url + '"' + (isPdf ? ' target="_blank" rel="noopener">Open PDF' : ' download>Download .docx') + '</a></p>' : '') + '</article>';
   if (isPdf) loadPdf(url);
   if (canEdit) setupEditor(a.id);
-}
-
+}); }
 // ---------- Inline editor (admin only; saving is enforced by Supabase RLS) ----------
 function setupEditor(articleId) {
   const box = document.getElementById("contentBox"), btn = document.getElementById("editBtn");
@@ -225,7 +244,7 @@ function setupEditor(articleId) {
     const html = DOMPurify.sanitize(box.innerHTML);
     const {data, error} = await sb.from("articles").update({html}).eq("id", articleId).select("id");
     if (error || !data || !data.length) { st.textContent = "Could not save. Are you logged in as admin?"; sv.disabled = false; return; }
-    box.innerHTML = html; stop(true);
+    box.innerHTML = html; try { localStorage.removeItem("ml:art:" + articleId); } catch (e) {} stop(true);
   }
   btn.onclick = start;
   document.addEventListener("selectionchange", sync);
@@ -241,7 +260,7 @@ function cfgProblem() {
 }
 function showProblem(m) { app.innerHTML = '<p class="flash"></p>'; app.firstChild.textContent = m; }
 const bad = cfgProblem();
-if (bad) showProblem(bad); else (id ? showArticle() : fid ? showFolder() : showList());
+if (bad) showProblem(bad); else sb.auth.getSession().then(({data:{session}}) => { loggedIn = !!session; }, () => {}).then(() => (id ? showArticle() : fid ? showFolder() : showList()));
 if (!bad) sb.auth.getSession().then(({data:{session}}) => {
   if (!session) return;
   const nav = document.getElementById("nav");
