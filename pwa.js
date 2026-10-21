@@ -1,7 +1,8 @@
 // Registers the app, and adds an "Install app" button to the header when the browser allows it.
 (function () {
   if ("serviceWorker" in navigator) addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
-  var standalone = matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches || navigator.standalone;
+  var inApp = /MalayalamOptionalApp/.test(navigator.userAgent);
+  var standalone = inApp || matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches || navigator.standalone;
   var evt = null, btn = null;
   function show() { if (btn && evt && !standalone) btn.hidden = false; }
   addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); evt = e; show(); });
