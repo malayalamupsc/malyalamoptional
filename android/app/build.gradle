@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'app.malayalamoptional'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'app.malayalamoptional'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+        // The website address comes from the build (see .github/workflows/build-apk.yml)
+        resValue 'string', 'site_url', (project.findProperty('SITE_URL') ?: 'https://example.com/')
+    }
+
+    signingConfigs {
+        release {
+            // A fixed key, so every new build can be installed over the previous one.
+            storeFile file('malayalamoptional.jks')
+            storePassword 'malayalam123'
+            keyAlias 'malayalam'
+            keyPassword 'malayalam123'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
