@@ -18,12 +18,13 @@
 <footer>© malayalamoptional &nbsp; <a href="admin.html">Admin login</a></footer>
 <script src="config.js"></script>
 <script src="card.js"></script>
+<script src="progress.js"></script>
 <script>
 const app = document.getElementById("app");
 const params = new URLSearchParams(location.search);
 const id = params.get("id"), fid = params.get("folder");
 const rowHtml = r => '<li><a href="?id=' + esc(r.id) + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span>' +
-  (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + '<span class="date">' + fmt(r.created_at) + '</span></li>';
+  (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + progChip(r.id) + '<span class="date">' + fmt(r.created_at) + '</span></li>';
 const countLabel = n => n + (n === 1 ? " article" : " articles");
 // Articles + collections. Falls back gracefully if the collections SQL has not been run yet.
 async function loadAll() {
@@ -145,6 +146,7 @@ function showArticle() { swr("ml:art:" + id, async () => {
     (url ? '<p><a class="btn" href="' + url + '"' + (isPdf ? ' target="_blank" rel="noopener">Open PDF' : ' download>Download .docx') + '</a></p>' : '') + '</article>';
   if (isPdf) loadPdf(url);
   if (canEdit) setupEditor(a.id);
+  if (!isPdf) initProgress(a.id, document.getElementById("contentBox"));
 }); }
 // ---------- Inline editor (admin only; saving is enforced by Supabase RLS) ----------
 function setupEditor(articleId) {

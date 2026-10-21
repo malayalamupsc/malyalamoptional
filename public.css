@@ -441,3 +441,19 @@ body.pub .content blockquote.poem::before, body.pub .content blockquote.poem::af
 body.pub .content blockquote.poem::before { content: "\201C"; top: -6px; left: 4px; }
 body.pub .content blockquote.poem::after { content: "\201D"; bottom: -34px; right: 4px; }
 @media (max-width: 560px) { body.pub .content blockquote.poem { padding: 8px 34px; } body.pub .content blockquote.poem::before, body.pub .content blockquote.poem::after { font-size: 44px; } }
+
+/* ---- Reading progress ---- */
+#readbar { position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 60; transform: scaleX(0); transform-origin: 0 50%;
+  background: var(--link, #085444); pointer-events: none; transition: transform .1s linear; }
+html[data-theme="dark"] #readbar { background: #58d1b0; }
+.resume-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100vw - 32px); padding: 12px 14px 12px 18px; border-radius: 16px; font: 500 14px/1.4 var(--font, system-ui);
+  background: var(--card-solid, #fff); color: var(--text, #1C2826); border: 1px solid var(--hairline, rgba(0,0,0,.1)); box-shadow: 0 10px 40px rgba(0,0,0,.2); }
+html[data-theme="dark"] .resume-toast { background: #26352f; color: #FDFCFA; }
+html[data-theme="eye"] .resume-toast { background: #F8F0DB; }
+.resume-toast button { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; font: 600 13px var(--font, system-ui); cursor: pointer; }
+.resume-toast .go { background: var(--forest, #085444); color: #fff; }
+.resume-toast .no { background: transparent; color: var(--label, #666); }
+html[data-theme="dark"] .resume-toast .go { background: #E1ECE6; color: #06211a; }
+body.pub .read-chip { background: transparent; border: 1px solid var(--hairline); color: var(--label); }
+body.pub .read-chip.done { color: var(--chip-fg); border-color: transparent; background: var(--chip-bg); }
