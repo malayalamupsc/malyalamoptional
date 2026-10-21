@@ -216,6 +216,10 @@ function setupEditor(articleId) {
     const mk = (t, nodes) => {
       const el = document.createElement(t);
       nodes.forEach(n => el.append(n));
+      if (t !== "p") {                                  // drop leftover font sizes/colours so same level = same size
+        el.querySelectorAll("[style]").forEach(x => x.removeAttribute("style"));
+        el.querySelectorAll("font").forEach(f => f.replaceWith(...f.childNodes));
+      }
       if (!el.textContent.trim() && !el.querySelector("img")) el.innerHTML = "<br>";
       made.push(el); return el;
     };

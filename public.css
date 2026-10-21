@@ -457,3 +457,17 @@ html[data-theme="eye"] .resume-toast { background: #F8F0DB; }
 html[data-theme="dark"] .resume-toast .go { background: #E1ECE6; color: #06211a; }
 body.pub .read-chip { background: transparent; border: 1px solid var(--hairline); color: var(--label); }
 body.pub .read-chip.done { color: var(--chip-fg); border-color: transparent; background: var(--chip-bg); }
+
+/* ---- Headings: every H1 / H2 / H3 is the same size everywhere, whatever the imported Word text carried ---- */
+body.pub .content h1 { font-size: 32px !important; }
+body.pub .content h2 { font-size: 26px !important; }
+body.pub .content h3 { font-size: 21px !important; }
+body.pub .content h1, body.pub .content h2, body.pub .content h3 { font-weight: 700; line-height: 1.4; margin: 1.6em 0 .6em; }
+body.pub .content h1 *, body.pub .content h2 *, body.pub .content h3 * {
+  font-size: inherit !important; font-family: inherit !important; line-height: inherit !important; font-weight: inherit;
+}
+@media (max-width: 560px) {
+  body.pub .content h1 { font-size: 26px !important; }
+  body.pub .content h2 { font-size: 22px !important; }
+  body.pub .content h3 { font-size: 19px !important; }
+}
