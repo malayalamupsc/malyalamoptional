@@ -4,7 +4,7 @@
 (function () {
   var KEY = "ml-fullscreen", de = document.documentElement;
   var can = de.requestFullscreen || de.webkitRequestFullscreen;
-  if (!can) return;                                   // e.g. iPhone Safari
+  if (!can || matchMedia("(display-mode: fullscreen)").matches) return;   // installed app is already full screen                                   // e.g. iPhone Safari
   var isFs = function () { return !!(document.fullscreenElement || document.webkitFullscreenElement); };
   var pref = function () { try { return localStorage.getItem(KEY) !== "off"; } catch (e) { return true; } };
   var setPref = function (v) { try { localStorage.setItem(KEY, v ? "on" : "off"); } catch (e) {} };

@@ -32,3 +32,10 @@ header.top nav { margin-left: auto; }
   border: 0; border-radius: 999px; background: rgba(128,128,128,.14); color: inherit; cursor: pointer; opacity: .8; }
 .fs-btn:hover, .fs-btn[aria-pressed="true"] { opacity: 1; }
 @media (max-width: 480px) { .fs-btn { margin-left: 6px; width: 30px; height: 30px; } }
+
+/* Install app button */
+.install-btn { margin-left: 10px; padding: 0 14px; height: 34px; flex: none; border: 0; border-radius: 999px; cursor: pointer;
+  font: 600 13px/1 inherit; font-family: inherit; background: var(--link, var(--accent, #085444)); color: #fff; }
+html[data-theme="dark"] .install-btn { color: #06211a; background: var(--sage, #E1ECE6); }
+.install-btn[hidden] { display: none; }
+@media (max-width: 480px) { .install-btn { padding: 0 10px; font-size: 12px; } }
