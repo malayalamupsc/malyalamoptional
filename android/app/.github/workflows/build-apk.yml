@@ -1,0 +1,59 @@
+name: Build Android app (APK)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Work out the website address
+        id: site
+        env:
+          CUSTOM_URL: ${{ vars.SITE_URL }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          if [ -n "$CUSTOM_URL" ]; then URL="$CUSTOM_URL"
+          elif [ "${REPO,,}" = "$OWNER.github.io" ]; then URL="https://$OWNER.github.io/"
+          else URL="https://$OWNER.github.io/$REPO/"; fi
+          echo "The app will open: $URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Build the APK
+        run: gradle -p android assembleRelease --no-daemon -PSITE_URL="${{ steps.site.outputs.url }}"
+
+      - name: Name the file
+        run: cp android/app/build/outputs/apk/release/app-release.apk malayalamoptional.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: malayalamoptional-apk
+          path: malayalamoptional.apk
+
+      - name: Publish a download link (Releases page)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest malayalamoptional.apk \
+            --title "Android app (APK)" \
+            --notes "Download malayalamoptional.apk on your phone and install it. Opens: ${{ steps.site.outputs.url }}"
