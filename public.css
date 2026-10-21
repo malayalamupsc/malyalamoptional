@@ -379,3 +379,54 @@ body.pub footer a:hover { color: var(--link); }
 @media print {
   body.pub .content { border: 0; box-shadow: none; padding: 0; }
 }
+
+/* ---------- Article editor (admin) ---------- */
+body.pub .content-wrap { position: relative; }
+body.pub .edit-btn {
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  width: 38px; height: 38px; display: grid; place-items: center;
+  border: 1px solid var(--hairline); border-radius: 50%;
+  background: var(--card); color: var(--forest); cursor: pointer;
+  transition: transform .2s var(--ease), background .2s var(--ease);
+}
+body.pub .edit-btn:hover { background: var(--sage); transform: scale(1.06); }
+body.pub .edit-btn[hidden] { display: none; }
+@media (prefers-color-scheme: dark) { body.pub .edit-btn { color: var(--cream); } body.pub .edit-btn:hover { background: rgba(253,252,250,.12); } }
+
+body.pub .edit-bar {
+  position: sticky; top: 8px; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  margin: 0 0 12px; padding: 8px;
+  background: var(--canvas); border: 1px solid var(--hairline); border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.08); font-family: var(--font);
+}
+body.pub .edit-bar button {
+  min-width: 38px; height: 36px; padding: 0 10px; font: 600 15px var(--font);
+  color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 9px; cursor: pointer;
+}
+body.pub .edit-bar button:hover { background: var(--sage); }
+@media (prefers-color-scheme: dark) { body.pub .edit-bar button:hover { background: rgba(253,252,250,.12); } }
+body.pub .edit-bar button.on { background: var(--forest); color: #fff; }
+body.pub .edit-bar .sep { width: 1px; height: 22px; background: var(--hairline); margin: 0 4px; }
+body.pub .edit-bar .grow { flex: 1; }
+body.pub .edit-bar .status { font-size: 13px; color: var(--label); margin-right: 6px; }
+body.pub .edit-bar button.save { background: var(--forest); color: #fff; padding: 0 16px; }
+body.pub .edit-bar button.save:disabled { opacity: .6; }
+body.pub .edit-bar button.cancel { color: var(--label); }
+body.pub .content.editing { outline: 2px solid var(--forest); outline-offset: 2px; min-height: 200px; }
+body.pub .content.editing:focus { outline: 2px solid var(--forest); }
+body.pub .content p { margin: 0 0 1em; }
+body.pub .content p:empty, body.pub .content p > br:only-child { min-height: 1em; }
+
+/* Poem quote: soft decorative quote marks, like a pull-quote */
+body.pub .content blockquote.poem {
+  position: relative; margin: 1.8em auto; padding: 8px 56px;
+  border: 0; color: var(--text); line-height: 2;
+}
+body.pub .content blockquote.poem p { margin: 0 0 .5em; }
+body.pub .content blockquote.poem::before, body.pub .content blockquote.poem::after {
+  position: absolute; font: 700 64px/1 Georgia, serif; color: #aebfd6; opacity: .8;
+}
+body.pub .content blockquote.poem::before { content: "\201C"; top: -6px; left: 4px; }
+body.pub .content blockquote.poem::after { content: "\201D"; bottom: -34px; right: 4px; }
+@media (max-width: 560px) { body.pub .content blockquote.poem { padding: 8px 34px; } body.pub .content blockquote.poem::before, body.pub .content blockquote.poem::after { font-size: 44px; } }
