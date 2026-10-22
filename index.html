@@ -54,8 +54,7 @@ function showList() { swr("ml:list", listData, d => {
   document.body.classList.add("home");
   let cat = "";
   app.innerHTML = '<p class="eyebrow">Study library</p><h1>Malayalam Optional notes and articles</h1>' +
-    '<p "നിത്യയത്നം തുടരുകിൽ വിജയം വന്നുചേർന്നിടും
-ബിന്ദുപാതമതിനാൽ ദൃഢശിലയും പിളർന്നിടും..."</p>' +
+    '<blockquote class="home-quote"><p>നിത്യയത്നം തുടരുകിൽ വിജയം വന്നുചേർന്നിടും</p><p>ബിന്ദുപാതമതിനാൽ ദൃഢശീലയും പിളർന്നിടും...</p></blockquote>' +
     '<div class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
     '<input id="q" type="search" placeholder="Search by title" aria-label="Search by title" autocomplete="off"></div>' +
     '<div class="pills" id="pills" role="group" aria-label="Filter by category">' +

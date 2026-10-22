@@ -65,3 +65,19 @@ html[data-theme="dark"] .logo-mark .lm-dark { display: block; }          /* Dark
 html[data-theme="eye"] .logo-mark .lm-eye { display: block; }            /* Eye protection */
 html[data-theme="eye"] .logo-mark img { filter: none; }
 header.top .brand { gap: 10px; }
+
+/* ---- Home page quote ---- */
+body.pub .home-quote {
+  position: relative; margin: 8px 0 28px; padding: 6px 52px 6px 56px; max-width: 40rem;
+  border: 0; font-family: "Noto Serif Malayalam", Georgia, serif; font-weight: 400;
+  font-size: 20px; line-height: 1.9; color: var(--text);
+}
+body.pub .home-quote p { margin: 0 0 .15em; font-weight: 400; }
+body.pub .home-quote::before, body.pub .home-quote::after {
+  position: absolute; font: 700 64px/1 Georgia, serif; color: #aebfd6; opacity: .85;
+}
+body.pub .home-quote::before { content: "\201C"; top: -8px; left: 0; }
+body.pub .home-quote::after { content: "\201D"; bottom: -36px; right: 8px; }
+html[data-theme="dark"] body.pub .home-quote::before, html[data-theme="dark"] body.pub .home-quote::after { color: #6f86a6; }
+html[data-theme="eye"] body.pub .home-quote::before, html[data-theme="eye"] body.pub .home-quote::after { color: #b9a77a; }
+@media (max-width: 560px) { body.pub .home-quote { padding: 6px 34px; font-size: 18px; } body.pub .home-quote::before, body.pub .home-quote::after { font-size: 44px; } }
