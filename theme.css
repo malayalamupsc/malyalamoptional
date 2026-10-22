@@ -56,8 +56,12 @@ body.pub .content b, body.pub .content strong, body.pub .content h1, body.pub .c
 body.pub .content { font-family: "Noto Serif Malayalam", Georgia, serif; }
 body.pub .edit-bar button { font-weight: 600; }
 
-/* ---- Logo: the real vector logo (no mask), coloured per theme ---- */
-.logo-mark { display: block; flex: none; width: 44px; height: 47px; color: #000000; }
-html[data-theme="dark"] .logo-mark { color: #FFFFFF; }
-html[data-theme="eye"] .logo-mark { color: #3A3224; }
+/* ---- Logo mark: plain SVG files (one per theme), transparent, no border, no background ---- */
+.logo-mark { display: block; flex: none; width: 44px; height: 47px; background: none; border: 0; padding: 0; }
+.brand .lm, .logo-mark .lm { display: none; width: 44px; height: 47px; border: 0; border-radius: 0; background: none; box-shadow: none; filter: none; }
+.logo-mark .lm-light { display: block; }                                  /* Day (also the default) */
+html[data-theme="dark"] .logo-mark .lm-light, html[data-theme="eye"] .logo-mark .lm-light { display: none; }
+html[data-theme="dark"] .logo-mark .lm-dark { display: block; }          /* Dark */
+html[data-theme="eye"] .logo-mark .lm-eye { display: block; }            /* Eye protection */
+html[data-theme="eye"] .logo-mark img { filter: none; }
 header.top .brand { gap: 10px; }
