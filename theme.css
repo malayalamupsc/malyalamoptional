@@ -56,11 +56,8 @@ body.pub .content b, body.pub .content strong, body.pub .content h1, body.pub .c
 body.pub .content { font-family: "Noto Serif Malayalam", Georgia, serif; }
 body.pub .edit-bar button { font-weight: 600; }
 
-/* ---- Logo: one shape, recoloured per theme ---- */
-.logo-mark {
-  display: inline-block; flex: none; width: 36px; height: 36px; background-color: #085444;
-  -webkit-mask: url("logo-mark.svg") center / contain no-repeat; mask: url("logo-mark.svg") center / contain no-repeat;
-}
-html[data-theme="dark"] .logo-mark { background-color: #FFFFFF; }
-html[data-theme="eye"] .logo-mark { background-color: #365B3E; }
+/* ---- Logo: the real vector logo (no mask), coloured per theme ---- */
+.logo-mark { display: block; flex: none; width: 44px; height: 47px; color: #000000; }
+html[data-theme="dark"] .logo-mark { color: #FFFFFF; }
+html[data-theme="eye"] .logo-mark { color: #3A3224; }
 header.top .brand { gap: 10px; }
