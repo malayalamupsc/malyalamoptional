@@ -389,3 +389,8 @@ html[data-theme="dark"] body.admin textarea:focus { border-color: var(--sage); }
 
 body.admin .prev { display: flex; justify-content: center; padding: 24px 16px; background: color-mix(in srgb, var(--sage) 35%, transparent); border-radius: 16px; }
 body.admin #crm { justify-self: start; padding-left: 0; }
+
+/* collections inside collections */
+body.admin #flist li.sub { border-left: 2px solid var(--hairline); padding-left: 12px; }
+body.admin #flist .fp { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--label); }
+body.admin #cp { max-width: 100%; }

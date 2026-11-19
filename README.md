@@ -65,7 +65,7 @@
 | ❝ | **Poem quote tool** | Select verse lines and turn them into a quote block, like a pull-quote |
 | ¶＋ | **Spacing** | Add or remove empty lines wherever you need space |
 | ↶ ↷ | **Undo and redo** | With Save and Cancel, and a warning if you leave with unsaved changes |
-| 🗂️ | **Collections editor** | Create collection cards with an image, a description and a button text |
+| 🗂️ | **Collections editor** | Create collection cards with an image, a description and a button text, and place a collection inside another one |
 
 ### 📱 Apps
 

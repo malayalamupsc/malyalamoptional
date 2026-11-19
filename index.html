@@ -27,6 +27,12 @@ const id = params.get("id"), fid = params.get("folder");
 const rowHtml = r => '<li><a href="?id=' + esc(r.id) + '">' + esc(r.title) + '</a><span class="chip">' + esc(r.category) + '</span>' +
   (/\.pdf$/i.test(r.file_path || "") ? '<span class="chip pdf-tag">PDF</span>' : '') + progChip(r.id) + '<span class="date">' + fmt(r.created_at) + '</span></li>';
 const countLabel = n => n + (n === 1 ? " article" : " articles");
+// Card for a collection; the article count includes everything in the collections nested inside it.
+function folderCard(f, folders, articles) {
+  const ids = folderTree(folders, f.id), subs = folderChildren(folders, f.id).length;
+  return cardHtml({href: "?folder=" + f.id, title: f.name, desc: f.description, btn: f.button_text, img: cardImgUrl(f.image_path),
+    badge: countLabel(articles.filter(r => ids.has(r.folder_id)).length) + (subs ? " · " + subs + (subs === 1 ? " collection" : " collections") : "")});
+}
 // Articles + collections. Falls back gracefully if the collections SQL has not been run yet.
 async function loadAll() {
   const ord = {ascending: false};
@@ -71,9 +77,7 @@ function showList() { swr("ml:list", listData, d => {
     const inFolder = r => r.folder_id && folders.some(f => f.id === r.folder_id);
     const loose = data.filter(r => !inFolder(r));
     let h = "";
-    if (folders.length) h += '<h2 class="section">Collections</h2><div class="cards">' + folders.map(f => cardHtml({
-      href: "?folder=" + f.id, title: f.name, desc: f.description, btn: f.button_text, img: cardImgUrl(f.image_path),
-      badge: countLabel(data.filter(r => r.folder_id === f.id).length)})).join("") + '</div>';
+    if (folders.length) h += '<h2 class="section">Collections</h2><div class="cards">' + folderTop(folders).map(f => folderCard(f, folders, data)).join("") + '</div>';
     if (loose.length || !folders.length) h += (folders.length ? '<h2 class="section">Articles</h2>' : '') +
       '<ul class="list">' + (loose.length ? loose.map(rowHtml).join("") : empty) + '</ul>';
     out.innerHTML = h;
@@ -90,11 +94,13 @@ function showFolder() { swr("ml:list", listData, d => {
   const articles = d ? d.articles : [], f = d && d.folders.find(x => x.id === fid);
   if (!f) { app.innerHTML = '<p class="empty">Collection not found. <a href="./">Back</a></p>'; return; }
   document.title = f.name + " | malayalamoptional";
-  const rows = articles.filter(r => r.folder_id === fid);
-  const img = cardImgUrl(f.image_path);
-  app.innerHTML = '<a class="back" href="./">← All articles</a><div class="fhead">' + (img ? '<img src="' + esc(img) + '" alt="" width="96" height="96">' : '') + '<div>' +
-    '<p class="eyebrow">Collection</p><h1>' + esc(f.name) + '</h1><p class="sub">' + (f.description ? esc(f.description) + " · " : "") + countLabel(rows.length) + '</p></div></div>' +
-    '<ul class="list">' + (rows.length ? rows.map(rowHtml).join("") : '<li class="empty">Nothing here yet.</li>') + '</ul>';
+  const rows = articles.filter(r => r.folder_id === fid), kids = folderChildren(d.folders, fid), par = folderParent(d.folders, f);
+  const img = cardImgUrl(f.image_path), total = articles.filter(r => folderTree(d.folders, fid).has(r.folder_id)).length;
+  app.innerHTML = (par ? '<a class="back" href="?folder=' + esc(par.id) + '">← ' + esc(par.name) + '</a>' : '<a class="back" href="./">← All articles</a>') + '<div class="fhead">' + (img ? '<img src="' + esc(img) + '" alt="" width="96" height="96">' : '') + '<div>' +
+    '<p class="eyebrow">Collection</p><h1>' + esc(f.name) + '</h1><p class="sub">' + (f.description ? esc(f.description) + " · " : "") + countLabel(total) + '</p></div></div>' +
+    (kids.length ? '<h2 class="section">Collections</h2><div class="cards">' + kids.map(k => folderCard(k, d.folders, articles)).join("") + '</div>' : '') +
+    (rows.length || !kids.length ? (kids.length ? '<h2 class="section">Articles</h2>' : '') +
+      '<ul class="list">' + (rows.length ? rows.map(rowHtml).join("") : '<li class="empty">Nothing here yet.</li>') + '</ul>' : '');
 }); }
 // Show the PDF through a blob URL so the storage host's security headers can't blank the viewer.
 async function loadPdf(url) {

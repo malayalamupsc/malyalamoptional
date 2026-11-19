@@ -52,6 +52,7 @@ async function showAdmin() {
     '<p id="note" class="flash" hidden></p></form>' +
     '<h2>Collections</h2><form class="card" id="cf"><p class="hint">Each collection shows on the site as a card. Add a picture and the text for it.</p>' +
     '<div class="field"><label for="cn">Card title</label><input type="text" id="cn" autocomplete="off" placeholder="e.g. Kannassa Ramayanam"></div>' +
+    '<div class="field" id="cpfield" hidden><label for="cp">Place inside <span class="opt">(optional)</span></label><select id="cp"></select></div>' +
     '<div class="field"><label for="cd">Description <span class="opt">(optional)</span></label><textarea id="cd" rows="3" placeholder="A short line about this collection"></textarea></div>' +
     '<div class="field"><label for="cbt">Button text</label><input type="text" id="cbt" value="Explore" autocomplete="off"></div>' +
     '<div class="field"><span class="lbl">Card image</span><div class="drop" id="cdrop">' +
@@ -96,20 +97,42 @@ async function showAdmin() {
   await loadFolders();
   loadList();
 }
-let FOLDERS = [], foldersOk = true, cardsOk = true, editingId = null;
+let FOLDERS = [], foldersOk = true, cardsOk = true, nestOk = true, editingId = null;
 const cardImg = {file: null, url: null, existing: null, remove: false};
-const folderOptions = sel => '<option value="">No collection</option>' + FOLDERS.map(f =>
-  '<option value="' + esc(f.id) + '"' + (f.id === sel ? " selected" : "") + '>' + esc(f.name) + '</option>').join("");
+// Collections in tree order (each parent followed by its children), with the depth for indenting.
+function folderOrder() {
+  const out = [], seen = new Set();
+  const walk = (f, d) => { if (seen.has(f.id)) return; seen.add(f.id); out.push({f, d}); folderChildren(FOLDERS, f.id).forEach(c => walk(c, d + 1)); };
+  folderTop(FOLDERS).forEach(f => walk(f, 0));
+  FOLDERS.forEach(f => walk(f, 0));   // anything left over (bad data) still shows
+  return out;
+}
+const folderOptions = sel => '<option value="">No collection</option>' + folderOrder().map(({f}) =>
+  '<option value="' + esc(f.id) + '"' + (f.id === sel ? " selected" : "") + '>' + esc(folderPathName(FOLDERS, f)) + '</option>').join("");
+// "Place inside" choices for the collection form: not itself, and not anything already inside it.
+function parentOptions(sel) {
+  const bad = editingId ? folderTree(FOLDERS, editingId) : new Set();
+  return '<option value="">Top level (not inside another collection)</option>' + folderOrder().filter(({f}) => !bad.has(f.id)).map(({f}) =>
+    '<option value="' + esc(f.id) + '"' + (f.id === sel ? " selected" : "") + '>' + esc(folderPathName(FOLDERS, f)) + '</option>').join("");
+}
+function refreshParentSelect(sel) {
+  const cp = document.getElementById("cp");
+  cp.innerHTML = parentOptions(sel === undefined ? cp.value : sel);
+  document.getElementById("cpfield").hidden = !nestOk || !FOLDERS.length && !editingId;
+}
 async function loadFolders() {
   const r = await sb.from("folders").select("*").order("created_at");
   foldersOk = !r.error; FOLDERS = r.error ? [] : r.data;
   // Card image/text columns come from the updated SQL; check they exist.
   cardsOk = foldersOk && !(await sb.from("folders").select("description,button_text,image_path").limit(1)).error;
+  // Nesting needs the parent_id column from the updated SQL; without it everything still works, just not nested.
+  nestOk = cardsOk && !(await sb.from("folders").select("parent_id").limit(1)).error;
   renderFolders();
 }
 function renderPreview() {
   const f = editingId ? FOLDERS.find(x => x.id === editingId) : null;
-  const cnt = f ? document.querySelectorAll('#list select.mv option[value="' + f.id + '"]:checked').length : 0;
+  const ids = f ? folderTree(FOLDERS, f.id) : new Set();
+  const cnt = [...document.querySelectorAll('#list select.mv')].filter(s => ids.has(s.value)).length;
   const img = cardImg.url || (!cardImg.remove && cardImg.existing ? cardImgUrl(cardImg.existing) : null);
   document.getElementById("cprev").innerHTML = cardHtml({
     title: document.getElementById("cn").value.trim(), desc: document.getElementById("cd").value.trim(),
@@ -127,15 +150,17 @@ function renderFolders() {
   cf.hidden = false;
   const keep = fo.value;
   fo.innerHTML = folderOptions(keep);
+  refreshParentSelect();
   document.getElementById("fofield").hidden = !FOLDERS.length;
-  fl.innerHTML = FOLDERS.length ? FOLDERS.map(f => {
-    const u = cardImgUrl(f.image_path);
-    return '<li><img class="fi" src="' + esc(u || "favicon.png") + '" alt="" width="56" height="44"><span class="fn">' + esc(f.name) +
+  fl.innerHTML = FOLDERS.length ? folderOrder().map(({f, d}) => {
+    const u = cardImgUrl(f.image_path), par = nestOk ? folderParent(FOLDERS, f) : null, kids = nestOk ? folderChildren(FOLDERS, f.id).length : 0;
+    return '<li' + (d && nestOk ? ' class="sub" style="margin-left:' + Math.min(d, 4) * 22 + 'px"' : '') + '><img class="fi" src="' + esc(u || "favicon.png") + '" alt="" width="56" height="44"><span class="fn">' + esc(f.name) +
+      (par ? '<small class="fp">inside ' + esc(par.name) + '</small>' : '') + (kids ? '<small class="fp">' + kids + (kids === 1 ? ' sub-collection' : ' sub-collections') + '</small>' : '') +
       '</span><button type="button" class="ghost-btn" data-e="' + esc(f.id) + '">Edit</button><button type="button" class="danger" data-d="' + esc(f.id) + '">Delete</button></li>';
   }).join("") : '<li class="empty">No collections yet. Create your first one above.</li>';
   fl.querySelectorAll("[data-e]").forEach(b => b.onclick = () => {
     const f = FOLDERS.find(x => x.id === b.dataset.e); if (!f) return;
-    editingId = f.id;
+    editingId = f.id; refreshParentSelect(f.parent_id || "");
     document.getElementById("cn").value = f.name || "";
     document.getElementById("cd").value = f.description || "";
     document.getElementById("cbt").value = f.button_text || "Explore";
@@ -145,7 +170,7 @@ function renderFolders() {
     document.getElementById("cf").scrollIntoView({behavior: "smooth", block: "center"}); document.getElementById("cn").focus();
   });
   fl.querySelectorAll("[data-d]").forEach(b => b.onclick = async () => {
-    if (!confirm("Delete this collection? Its articles are kept and will show as normal articles.")) return;
+    if (!confirm("Delete this collection? Its articles are kept and will show as normal articles, and any collections inside it move up to the top level.")) return;
     const f = FOLDERS.find(x => x.id === b.dataset.d);
     const r = await sb.from("folders").delete().eq("id", b.dataset.d);
     if (r.error) { alert("Could not delete: " + r.error.message); return; }
@@ -163,7 +188,7 @@ function clearPicked() {
   const d = document.getElementById("cdrop"); if (d) d.classList.remove("has-file");
 }
 function resetFolderForm() {
-  editingId = null; clearPicked(); cardImg.existing = null; cardImg.remove = false;
+  editingId = null; clearPicked(); cardImg.existing = null; cardImg.remove = false; refreshParentSelect("");
   document.getElementById("cn").value = ""; document.getElementById("cd").value = ""; document.getElementById("cbt").value = "Explore";
   document.getElementById("cb").textContent = "Create collection"; document.getElementById("cc").hidden = true;
   renderPreview();
@@ -197,6 +222,11 @@ async function saveFolder(e) {
     }
     const row = {name, description: document.getElementById("cd").value.trim() || null,
       button_text: document.getElementById("cbt").value.trim() || "Explore", image_path};
+    if (nestOk) {
+      const pv = document.getElementById("cp").value || null;
+      if (pv && editingId && folderTree(FOLDERS, editingId).has(pv)) throw new Error("A collection cannot be placed inside itself or one of its own sub-collections.");
+      row.parent_id = pv;
+    }
     const r = editingId ? await sb.from("folders").update(row).eq("id", editingId) : await sb.from("folders").insert(row);
     if (r.error) throw r.error;
     if (cardImg.existing && image_path !== cardImg.existing) await sb.storage.from("docx").remove([cardImg.existing]);
