@@ -471,3 +471,17 @@ body.pub .content h1 *, body.pub .content h2 *, body.pub .content h3 * {
   body.pub .content h2 { font-size: 22px !important; }
   body.pub .content h3 { font-size: 19px !important; }
 }
+
+/* ---- Big screens: scale the page up so text, cards and spacing keep a comfortable size ---- */
+@media (min-width: 1500px) { body.pub { zoom: 1.2; } }
+@media (min-width: 1900px) { body.pub { zoom: 1.4; } }
+@media (min-width: 2400px) { body.pub { zoom: 1.8; } }
+@media (min-width: 3000px) { body.pub { zoom: 2.2; } }
+@media (min-width: 3600px) { body.pub { zoom: 2.6; } }
+/* home and collection pages: room for three cards across */
+@media (min-width: 1000px) { body.pub:not(.reading) main { max-width: 62rem; } }
+/* search bar spans the full content width so everything lines up */
+body.pub .search { max-width: none; }
+
+/* header padding in style.css uses 100vw, which ignores the zoom above */
+@media (min-width: 1500px) { body.pub .top { padding-left: 24px; padding-right: 24px; } }

@@ -394,3 +394,22 @@ body.admin #crm { justify-self: start; padding-left: 0; }
 body.admin #flist li.sub { border-left: 2px solid var(--hairline); padding-left: 12px; }
 body.admin #flist .fp { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--label); }
 body.admin #cp { max-width: 100%; }
+
+/* collection picker on each article: full width, 16px, full path visible */
+body.admin .mvw { flex: 1 1 100%; display: flex; align-items: center; gap: 12px; }
+body.admin .mvw .mvl { flex: none; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--label); }
+body.admin select.mv { flex: 1 1 auto; width: 100%; max-width: none; padding: 12px 36px 12px 14px; font-size: 16px; line-height: 1.4; border-radius: 12px; text-overflow: ellipsis; }
+body.admin select, body.admin select option { font-size: 16px; }
+body.admin #fohint { margin: 8px 2px 0; font-size: 14px; }
+body.admin #fohint b { color: var(--text); font-weight: 600; }
+@media (max-width: 560px) { body.admin .mvw { flex-wrap: wrap; gap: 6px; } }
+
+/* big screens: scale the whole admin page up instead of leaving it tiny */
+@media (min-width: 1500px) { body.admin { zoom: 1.2; } }
+@media (min-width: 1900px) { body.admin { zoom: 1.4; } }
+@media (min-width: 2400px) { body.admin { zoom: 1.8; } }
+@media (min-width: 3000px) { body.admin { zoom: 2.2; } }
+@media (min-width: 3600px) { body.admin { zoom: 2.6; } }
+
+/* header padding in style.css uses 100vw, which ignores the zoom above */
+@media (min-width: 1500px) { body.admin .top { padding-left: 24px; padding-right: 24px; } }
